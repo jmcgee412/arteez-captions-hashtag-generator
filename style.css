@@ -1,0 +1,638 @@
+:root {
+    /* Tech Dark Theme Palette */
+    --bg-primary: #12121f; /* Deep dark blue/purple */
+    --bg-secondary: #1a1a2e; /* Slightly lighter dark blue */
+    --bg-card: #1f1f35; /* Card background */
+    --text-primary: #e0e0ff; /* Light lavender/white */
+    --text-secondary: #a0a0c0; /* Muted lavender/grey */
+    --accent-primary: #00f5c3; /* Neon Teal/Green */
+    --accent-primary-dark: #00d1a7;
+    --accent-secondary: #ff4dff; /* Neon Pink/Magenta */
+    --accent-secondary-dark: #e600e6;
+    --border-color: #303050; /* Dark border */
+    --success-color: #00f5c3; /* Use accent for success */
+    --success-color-dark: #00d1a7;
+    --info-color: var(--accent-secondary); /* Use accent for info */
+    --info-color-dark: var(--accent-secondary-dark);
+    --white-color: #ffffff;
+    --danger-color: #ff4d4d;
+
+    --border-radius: 6px;
+    --box-shadow-light: 0 4px 15px rgba(0, 245, 195, 0.1); /* Subtle accent glow */
+    --box-shadow-strong: 0 6px 25px rgba(0, 245, 195, 0.2);
+    --font-family-base: 'Inter', sans-serif;
+    --spacing-unit: 1rem; /* 16px */
+
+    /* Glassmorphism effect (optional, use carefully) */
+    --backdrop-blur: blur(10px);
+    --bg-glass: rgba(31, 31, 53, 0.7); /* Semi-transparent card bg */
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family-base);
+    line-height: 1.6;
+    background-color: var(--bg-primary);
+    /* Optional: Add a subtle gradient or noise texture */
+    background-image: radial-gradient(circle at top center, var(--bg-secondary) 0%, var(--bg-primary) 70%);
+    color: var(--text-primary);
+    padding: calc(var(--spacing-unit) * 1.5); /* 24px */
+}
+
+.container {
+    max-width: 1140px;
+    margin: auto;
+    background: transparent; /* Container is just for layout */
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 1.5); /* 24px */
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: var(--spacing-unit);
+}
+
+.app-header h1 {
+    font-size: 2.5rem; /* Slightly larger */
+    font-weight: 700;
+    color: var(--white-color);
+    margin-bottom: 0; /* Removed subtitle, no margin needed */
+     /* Subtle text shadow for depth */
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+section {
+    margin-bottom: 0; /* Using gap in container */
+    padding: 0; /* Padding handled by card */
+    border-bottom: none; /* Using card separation */
+}
+
+section.card {
+    background-color: var(--bg-card);
+    /* Optional Glassmorphism:
+     background-color: var(--bg-glass);
+     backdrop-filter: var(--backdrop-blur);
+     -webkit-backdrop-filter: var(--backdrop-blur);
+    */
+    padding: calc(var(--spacing-unit) * 1.5); /* 24px */
+    border-radius: calc(var(--border-radius) * 1.5); /* Slightly larger radius */
+    box-shadow: var(--box-shadow-light);
+    border: 1px solid var(--border-color);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+section.card:hover {
+    border-color: rgba(0, 245, 195, 0.3); /* Accent border on hover */
+    box-shadow: var(--box-shadow-strong);
+}
+
+section.collapsible-section {
+    padding: 0; /* Remove padding from section, apply to header/content */
+}
+section.collapsible-section.card {
+     overflow: hidden; /* Prevent content overflow when collapsed */
+}
+
+section h2 {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-unit); /* 16px */
+    padding-bottom: calc(var(--spacing-unit) * 0.75); /* 12px */
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 0.75); /* 12px */
+}
+
+.collapsible-header {
+    padding: calc(var(--spacing-unit) * 1.5); /* Apply padding here */
+    margin-bottom: 0; /* Remove bottom margin */
+    border-bottom: 1px solid var(--border-color); /* Keep border */
+    cursor: pointer;
+    display: flex;
+    /*justify-content: space-between; /* Push icon to the right */
+    align-items: center;
+    transition: background-color 0.3s ease;
+
+    gap: 12px;
+}
+
+.collapsible-header:hover {
+  /*  background-color: rgba(255, 255, 255, 0.03); /* Subtle hover effect */
+}
+
+.collapsible-header .step-number {
+    margin-right: calc(var(--spacing-unit) * 0.75); /* Add gap */
+    flex-shrink: 0;
+}
+.collapsible-header > span:not(.step-number) {
+    flex-grow: 1;
+    margin-right: var(--spacing-unit); /* Space before icon */
+}
+
+
+
+
+
+.hidden {
+  display: none;
+}
+
+/* Show reset button only when section is expanded */
+.collapsible-section.expanded .reset-btn {
+  display: inline-block;
+}
+
+
+
+
+.collapse-icon {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-secondary);
+    transition: transform 0.3s ease, stroke 0.3s ease;
+    flex-shrink: 0;
+}
+.collapsible-header:hover .collapse-icon {
+    stroke: var(--accent-primary);
+}
+.collapsible-section.expanded .collapse-icon {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+    padding: 0 calc(var(--spacing-unit) * 1.5); /* Horizontal padding matches header */
+    background-color: var(--bg-card); /* Match card background */
+    border-top: none; /* Header provides top border */
+}
+
+.collapsible-section.expanded .collapsible-content {
+    max-height: 1000px; /* Arbitrary large height */
+    padding: calc(var(--spacing-unit) * 1.5); /* Restore padding when expanded */
+    border-top: 1px solid var(--border-color); /* Add separator */
+    transition: max-height 0.5s ease-in, padding 0.5s ease-in;
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; /* Larger */
+    height: 32px; /* Larger */
+    background-color: var(--accent-primary);
+    color: var(--bg-primary); /* Dark text on bright bg */
+    font-size: 0.9rem; /* 14.4px */
+    font-weight: 700;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(0, 245, 195, 0.5); /* Glow */
+}
+
+button {
+    padding: calc(var(--spacing-unit) * 0.65) calc(var(--spacing-unit) * 1.2); /* ~10px 19px */
+    border: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.05); /* Subtle background */
+    color: var(--text-secondary);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 500;
+    /* display: inline-flex; */
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 0.4); /* ~6px */
+    line-height: 1.4;
+}
+
+button:hover {
+    background-color: rgba(0, 245, 195, .1); /* Accent hover bg */
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(0, 245, 195, 0.3);
+}
+
+button:focus-visible {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(0, 245, 195, 0.4);
+}
+
+button.active {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary); /* Dark text */
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 10px rgba(0, 245, 195, 0.5);
+}
+
+button.active:hover {
+    background-color: var(--accent-primary-dark);
+    border-color: var(--accent-primary-dark);
+    box-shadow: 0 0 15px rgba(0, 245, 195, 0.7);
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing-unit) * 0.75); /* 12px */
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: calc(var(--spacing-unit) * 0.75); /* 12px */
+}
+
+.settings-section h2 {
+    margin-bottom: 20;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.platform-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-unit); /* 16px */
+}
+
+.platform-card {
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-unit); /* 16px */
+    border-radius: var(--border-radius);
+    background-color: rgba(18, 18, 31, 0.7); /* Slightly darker nested card */
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.platform-card:hover {
+    border-color: rgba(255, 77, 255, 0.4); /* Secondary accent hover border */
+    box-shadow: 0 2px 10px rgba(31, 31, 53, 0.5);
+}
+
+.platform-card h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-unit); /* 16px */
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    color: var(--accent-secondary); /* Use secondary accent for platform names */
+    text-shadow: 0 0 8px rgba(255, 77, 255, 0.5);
+}
+
+.setting {
+    margin-bottom: calc(var(--spacing-unit) * 0.75); /* 12px */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-unit);
+}
+
+.setting:last-child {
+    margin-bottom: 0;
+}
+
+.setting label {
+    font-size: 0.875rem; /* 14px */
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.setting input[type="number"] {
+    width: 70px; /* Fixed width for number inputs */
+    padding: calc(var(--spacing-unit) * 0.4) calc(var(--spacing-unit) * 0.6); /* ~6px 10px */
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--border-radius) * 0.8); /* Slightly smaller radius */
+    text-align: right;
+    font-size: 0.9375rem; /* 15px */
+    font-family: inherit;
+    background-color: var(--bg-primary); /* Dark input bg */
+    color: var(--text-primary); /* Light input text */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.setting input[type="number"]:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 245, 195, 0.3);
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.setting.total-setting span {
+  display: inline-block;
+  min-width: 60px;
+  text-align: right;
+  font-weight: 600;
+  padding-right: 8px;
+}
+
+.actions-section {
+    text-align: center;
+    padding: var(--spacing-unit) 0; /* Add some spacing */
+    background: none;
+    box-shadow: none;
+    border: none;
+}
+
+.action-btn.generate {
+    padding: calc(var(--spacing-unit) * 0.9) calc(var(--spacing-unit) * 2.5); /* ~14px 40px */
+    font-size: 1.3rem; /* 21px */
+    font-weight: 700; /* Bolder */
+    background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+    color: var(--bg-primary); /* Dark text on gradient */
+    border: none; /* Remove border for gradient button */
+    cursor: pointer;
+    gap: calc(var(--spacing-unit) * 0.6); /* 10px */
+    box-shadow: 0 5px 15px rgba(0, 245, 195, 0.3), 0 5px 15px rgba(255, 77, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.action-btn.generate:hover {
+    background: linear-gradient(45deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+    box-shadow: 0 8px 25px rgba(0, 245, 195, 0.5), 0 8px 25px rgba(255, 77, 255, 0.5);
+    transform: translateY(-2px); /* Slight lift */
+}
+.action-btn.generate:active {
+     transform: translateY(0px);
+     box-shadow: 0 3px 10px rgba(0, 245, 195, 0.2), 0 3px 10px rgba(255, 77, 255, 0.2);
+}
+
+.action-btn.generate svg {
+    margin-bottom: -3px; /* Align icon better */
+    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5)); /* Icon shadow */
+}
+
+.content-management {
+    padding: calc(var(--spacing-unit) * 1.5);
+}
+
+.content-management h2 {
+    margin-bottom: var(--spacing-unit); /* 16px */
+    padding-bottom: calc(var(--spacing-unit) * 0.75);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.management-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--spacing-unit) * 0.75); /* 12px */
+    align-items: center;
+}
+
+.management-btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+    font-weight: 500;
+}
+
+.management-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2px; /* Slightly thinner */
+    color: var(--text-secondary);
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.management-btn:hover {
+    background-color: rgba(255, 77, 255, 0.1); /* Secondary accent hover */
+    border-color: var(--accent-secondary);
+    color: var(--accent-secondary);
+}
+
+.management-btn:hover svg {
+    color: var(--accent-secondary);
+    transform: scale(1.1);
+}
+
+.output-section {
+    background: none;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+}
+
+.output-section h2 {
+    margin-bottom: 0; /* Connected to output area */
+    border-bottom: none;
+    padding: calc(var(--spacing-unit) * 1.2) calc(var(--spacing-unit) * 1.5); /* 19px 24px */
+    background-color: var(--bg-card); /* Match card bg */
+    border-radius: calc(var(--border-radius) * 1.5) calc(var(--border-radius) * 1.5) 0 0; /* Round top corners */
+    box-shadow: var(--box-shadow-light);
+    border: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color); /* Keep border between title and content */
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 0.75); /* 12px */
+    color: var(--text-primary); /* Ensure title text color is correct */
+}
+
+#output-area {
+    margin-top: 0; /* Connected to h2 */
+    background-color: var(--bg-card);
+    padding: calc(var(--spacing-unit) * 1.5); /* 24px */
+    border-radius: 0 0 calc(var(--border-radius) * 1.5) calc(var(--border-radius) * 1.5); /* Round bottom corners */
+    border: 1px solid var(--border-color);
+    border-top: none; /* Remove top border */
+    min-height: 100px;
+    box-shadow: var(--box-shadow-light);
+}
+
+.output-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-unit); /* 16px */
+}
+
+.output-platform {
+    margin-bottom: 0; /* Using grid gap */
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: rgba(18, 18, 31, 0.7); /* Darker nested card */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Ensure content stays within rounded corners */
+    transition: border-color 0.3s ease;
+}
+.output-platform:hover {
+    border-color: var(--accent-primary);
+}
+
+.output-platform h4 {
+    margin: 0;
+    padding: calc(var(--spacing-unit) * 0.75) var(--spacing-unit); /* 12px 16px */
+    font-size: 1.1rem; /* Slightly smaller */
+    font-weight: 600;
+    color: var(--accent-primary); /* Primary accent for platform title */
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(0,0,0,0.1); /* Slightly darker header */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.output-content {
+    background-color: transparent;
+    padding: var(--spacing-unit); /* 16px */
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    flex-grow: 1; /* Take remaining space */
+    font-size: 0.9375rem; /* 15px */
+    color: var(--text-primary); /* Ensure text is readable */
+}
+
+.output-caption {
+    font-style: normal;
+    margin-bottom: calc(var(--spacing-unit) * 0.75); /* 12px */
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.output-hashtags {
+    color: var(--text-secondary); /* Muted color for hashtags */
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.6;
+    word-spacing: 0.5em;
+}
+
+.copy-btn {
+    padding: calc(var(--spacing-unit) * 0.3) calc(var(--spacing-unit) * 0.7); /* ~5px 11px */
+    font-size: 0.8125rem; /* 13px */
+    background-color: var(--accent-secondary); /* Secondary accent */
+    color: var(--bg-primary); /* Dark text */
+    border: none;
+    float: none;
+    margin-left: 0;
+    line-height: 1;
+    font-weight: 600; /* Bolder copy button text */
+    box-shadow: 0 0 8px rgba(255, 77, 255, 0.4);
+    transition: all 0.2s ease;
+}
+
+.copy-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2.5px;
+    stroke: var(--bg-primary); /* Match text color */
+}
+
+.copy-btn.copied {
+    background-color: var(--success-color); /* Primary accent for success */
+    box-shadow: 0 0 8px rgba(0, 245, 195, 0.5);
+}
+.copy-btn.copied svg {
+    stroke: var(--bg-primary);
+}
+
+.copy-btn:hover {
+    background-color: var(--accent-secondary-dark);
+    box-shadow: 0 0 12px rgba(255, 77, 255, 0.6);
+    transform: scale(1.05);
+}
+
+.copy-btn.copied:hover {
+    background-color: var(--success-color-dark);
+    box-shadow: 0 0 12px rgba(0, 245, 195, 0.7);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: var(--spacing-unit); /* 16px */
+    }
+
+    .container {
+        gap: var(--spacing-unit); /* 16px */
+    }
+
+    section.card, .output-section h2, #output-area {
+        padding: var(--spacing-unit); /* 16px */
+    }
+
+    .app-header h1 {
+        font-size: 2rem; /* 32px */
+    }
+
+    section h2 {
+        font-size: 1.3rem; /* 21px */
+    }
+
+    .button-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+
+    .setting {
+        flex-direction: row; /* Keep row layout */
+        align-items: center; /* Center align items */
+        gap: calc(var(--spacing-unit) * 0.5); /* Smaller gap */
+    }
+
+    .setting label {
+        margin-bottom: 0; /* Reset margin */
+        flex-grow: 1; /* Allow label to take space */
+    }
+
+    .setting input[type="number"] {
+        width: 60px; /* Slightly smaller fixed width */
+        flex-shrink: 0; /* Prevent shrinking */
+    }
+
+    .management-buttons {
+        justify-content: center;
+        flex-direction: column; /* Stack management buttons */
+        align-items: stretch; /* Make buttons full width */
+    }
+
+    #output-area.output-grid {
+        grid-template-columns: 1fr; /* Stack output cards */
+    }
+
+    .action-btn.generate {
+         font-size: 1.1rem;
+         padding: calc(var(--spacing-unit) * 0.8) calc(var(--spacing-unit) * 1.5);
+    }
+}
+
+@media (max-width: 480px) {
+    .button-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: calc(var(--spacing-unit) * 0.5);
+    }
+    .button-row {
+        gap: calc(var(--spacing-unit) * 0.5);
+    }
+    button {
+         padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 0.8);
+         font-size: 0.875rem;
+    }
+    .platform-settings {
+        grid-template-columns: 1fr; /* Stack platform settings */
+    }
+    .setting {
+         justify-content: space-between; /* Revert to space-between */
+    }
+    .setting label {
+        flex-grow: 0; /* Reset grow */
+    }
+}
