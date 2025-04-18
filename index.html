@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POC: Caption Tool Sync Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+    }
+    button {
+      display: block;
+      margin: 10px 0;
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    pre {
+      background: #eee;
+      padding: 10px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h2>Proof of Concept: Sync & Storage</h2>
+
+  <button onclick="syncFromGoogleSheets()">1. Sync from Google Sheets</button>
+  <button onclick="showLocalData()">2. Show Local Data (IndexedDB)</button>
+  <button onclick="pushToGoogleSheets()">3. Push New Value to Google Sheets</button>
+
+  <h3>Output:</h3>
+  <pre id="output">Waiting...</pre>
+
+  <script src="script-v2.js"></script>
+</body>
+</html>
