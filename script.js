@@ -142,6 +142,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       platformSettingsSection.classList.toggle('expanded');
+
+      const resetBtn = document.getElementById('reset-settings-btn');
+      if (platformSettingsSection.classList.contains('expanded')) {
+          resetBtn.style.display = 'inline-block';
+      } else {
+          resetBtn.style.display = 'none';
+      }
     });
 
     // Category Selection (Single Choice)
