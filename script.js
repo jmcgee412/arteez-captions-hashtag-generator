@@ -10,12 +10,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const viewHashtagsBtn = document.getElementById('view-hashtags-btn');
     const platformSettingsHeader = document.getElementById('platform-settings-header'); // Get header
     const platformSettingsSection = platformSettingsHeader.closest('.collapsible-section'); // Get parent section
+    const customHashtagsInput = document.getElementById('custom-hashtags-input'); // Get custom hashtags input
+    const customHashtagsHeader = document.getElementById('custom-hashtags-header'); // Get custom hashtags header
+    const customHashtagsSection = document.getElementById('custom-hashtags-section'); // Get custom hashtags section
+    const platformExclusionsContainer = document.getElementById('platform-exclusions'); // Container for exclusion checkboxes
 
     const platforms = ["Instagram", "TikTok", "Facebook", "Threads", "Twitter", "Bluesky", "Spoutible"];
     const selectedState = {
         category: null,
         tags: new Set(),
-        settings: {}
+        settings: {},
+        customHashtags: '',
+        excludeCustomHashtags: new Set() // Add property for platform exclusions
     };
 
     // --- Initialize IndexedDB ---
@@ -82,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         platforms.forEach(platform => {
             const settings = selectedState.settings[platform];
 
+            // Create platform settings card
             const card = document.createElement('div');
             card.classList.add('platform-card');
             card.innerHTML = `
@@ -109,6 +116,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
             platformSettingsContainer.appendChild(card);
+
+            // Create platform exclusion checkbox
+            const checkboxWrapper = document.createElement('div');
+            checkboxWrapper.classList.add('platform-checkbox-wrapper');
+            const checkboxId = `exclude-${platform}`;
+            checkboxWrapper.innerHTML = `
+                <input type="checkbox" id="${checkboxId}" data-platform="${platform}">
+                <label for="${checkboxId}">${platform}</label>
+            `;
+            platformExclusionsContainer.appendChild(checkboxWrapper);
         });
     }
 
@@ -142,13 +159,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       platformSettingsSection.classList.toggle('expanded');
+    });
 
-      const resetBtn = document.getElementById('reset-settings-btn');
-      if (platformSettingsSection.classList.contains('expanded')) {
-          resetBtn.style.display = 'inline-block';
-      } else {
-          resetBtn.style.display = 'none';
-      }
+    customHashtagsHeader.addEventListener('click', () => {
+        customHashtagsSection.classList.toggle('expanded');
     });
 
     // Category Selection (Single Choice)
@@ -199,6 +213,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Custom Hashtags Input Change
+    customHashtagsInput.addEventListener('input', (event) => {
+        selectedState.customHashtags = event.target.value.trim();
+        console.log("Updated custom hashtags:", selectedState.customHashtags);
+    });
+
+    // Platform Exclusion Checkbox Change
+    platformExclusionsContainer.addEventListener('change', (event) => {
+        if (event.target.type === 'checkbox') {
+            const platform = event.target.dataset.platform;
+            if (event.target.checked) {
+                selectedState.excludeCustomHashtags.add(platform);
+            } else {
+                selectedState.excludeCustomHashtags.delete(platform);
+            }
+            console.log("Excluded platforms for custom hashtags:", Array.from(selectedState.excludeCustomHashtags));
+        }
+    });
+
     // Generate Button Click
     generateBtn.addEventListener('click', () => {
         console.log("Generate button clicked!");
@@ -224,6 +257,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             hashtags += Array.from({length: settings.popular}, (_, i) => `#popular${i+1}`).join(' ');
             hashtags += Array.from({length: settings.niche}, (_, i) => `#niche${i+1}`).join(' ');
             hashtags += Array.from({length: settings.branded}, (_, i) => `#brand${i+1}`).join(' ');
+
+            // Add custom hashtags if any provided AND if platform is not excluded
+            if (selectedState.customHashtags && !selectedState.excludeCustomHashtags.has(platform)) {
+                // Basic processing: split by space/comma, filter empty, ensure '#' prefix
+                const customTags = selectedState.customHashtags
+                    .split(/[\s,]+/) // Split by space or comma
+                    .filter(tag => tag.length > 0)
+                    .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+                    .join(' ');
+                if (customTags.length > 0) {
+                    hashtags += ` ${customTags}`;
+                }
+            }
 
             const platformOutput = document.createElement('div');
             platformOutput.classList.add('output-platform');
@@ -307,6 +353,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log("🔄 Reset to default platform settings.");
     });
 
+    document.getElementById('reset-settings-btn-mobile').addEventListener('click', () => {
+        selectedState.settings = getDefaultPlatformSettings();
+
+        platforms.forEach(platform => {
+            const settings = selectedState.settings[platform];
+            document.getElementById(`${platform}-chars`).value = settings.chars;
+            document.getElementById(`${platform}-niche`).value = settings.niche;
+            document.getElementById(`${platform}-popular`).value = settings.popular;
+            document.getElementById(`${platform}-branded`).value = settings.branded;
+            document.getElementById(`${platform}-total`).textContent =
+            settings.niche + settings.popular + settings.branded;
+        });
+
+        savePlatformSettings(selectedState.settings);
+        console.log("🔄 Reset to default platform settings.");
+    });
+
     // Content Management Button Placeholders
     addCaptionBtn.addEventListener('click', () => {
         console.log("Add New Captions clicked");
@@ -330,4 +393,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeSettings();
     // Ensure the settings section starts collapsed (remove if expanded class was added by default)
     platformSettingsSection.classList.remove('expanded');
+    customHashtagsSection.classList.remove('expanded');
 });
+
