@@ -89,13 +89,14 @@ section.card {
     border: 1px solid var(--border-color);
     transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
+
 section.card:hover {
     border-color: rgba(0, 245, 195, 0.3); /* Accent border on hover */
     box-shadow: var(--box-shadow-strong);
 }
 
 section.collapsible-section {
-    padding: 0; /* Remove padding from section, apply to header/content */
+    /*padding: 0; /* Remove padding from section, apply to header/content */
 }
 section.collapsible-section.card {
      overflow: hidden; /* Prevent content overflow when collapsed */
@@ -114,7 +115,7 @@ section h2 {
 }
 
 .collapsible-header {
-    padding: calc(var(--spacing-unit) * 1.5); /* Apply padding here */
+    /*padding: calc(var(--spacing-unit) * 1.5); /* Apply padding here */
     margin-bottom: 0; /* Remove bottom margin */
     border-bottom: 1px solid var(--border-color); /* Keep border */
     cursor: pointer;
@@ -122,8 +123,14 @@ section h2 {
     /*justify-content: space-between; /* Push icon to the right */
     align-items: center;
     transition: background-color 0.3s ease;
-
     gap: 12px;
+}
+
+/* Adjust border and paddding for Custom Hashtags section */
+#custom-hashtags-section .collapsible-header {
+  border-bottom: none;    /* remove the line */
+  padding-bottom: 0;      /* kill the 12px h2 padding */
+  margin-bottom: 0;       /* kill any bottom margin */
 }
 
 .collapsible-header:hover {
@@ -183,7 +190,7 @@ section h2 {
 .collapsible-section.expanded .collapsible-content {
     max-height: 1000px; /* Arbitrary large height */
     padding: calc(var(--spacing-unit) * 1.5); /* Restore padding when expanded */
-    border-top: 1px solid var(--border-color); /* Add separator */
+    /*border-top: 1px solid var(--border-color); /* Add separator */
     transition: max-height 0.5s ease-in, padding 0.5s ease-in;
 }
 
@@ -257,7 +264,7 @@ button.active:hover {
 }
 
 .settings-section h2 {
-    margin-bottom: 20;
+    /*margin-bottom: 20;*/
     border-bottom: none;
     padding-bottom: 0;
 }
@@ -769,4 +776,3 @@ input[type="number"] {
          height: 8px;
      }
 }
-
