@@ -395,4 +395,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     platformSettingsSection.classList.remove('expanded');
     customHashtagsSection.classList.remove('expanded');
 });
-
