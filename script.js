@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-     // --- Google Sheets & IndexedDB Setup ---
+    // ——— Google Sheets & IndexedDB Setups ———
     const SHEET_ID = "15121EMhmrUMDrdkcr9vbePnMGtI67ilEYICaoAkFiDM";
     const SHEET_NAME_CAPTIONS = 'CaptionBank';
     const SHEET_NAME_HASHTAGS = 'HashtagBank';
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const STORE_HASHTAGS = 'hashtags';
     const STORE_SETTINGS = 'platformSettings';
 
-    // --- Initialize IndexedDB ---
+    // ——— Initialize IndexedDB ———
     function getDB() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
@@ -106,7 +106,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Function to load platform settings ---
+    // ——— Store IndexedDB store information to memory for filtering access ———
+    async function getAllFromIndexedDB(storeName) {
+        const db = await getDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // ——— Function to load platform settings ———
     async function loadPlatformSettings() {
       try {
         const db = await getDB();
@@ -133,7 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // --- Function to save platform settings ---
+    // ——— Function to save platform settings ———
     async function savePlatformSettings(settings) {
         const db = await getDB();
         const tx = db.transaction(STORE_SETTINGS, "readwrite");
@@ -157,6 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
+    // ——— Function to fetch the information from Google Sheets ———
     async function fetchSheet(sheetName) {
       const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
       const res  = await fetch(url);
@@ -194,6 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
+    // ——— Syncing call that initiaye the fetch from Google Sheets for each bank ———
     async function syncFromGoogleSheets() {
         try {
             showToast('Syncing from Google Sheets…');
@@ -230,13 +244,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             showToast('Sync successful');
 
+            // Reload in-memory data for captions and hashtags after a successful sync
+            selectedState.captions = await getAllFromIndexedDB(STORE_CAPTIONS);
+            selectedState.hashtags = await getAllFromIndexedDB(STORE_HASHTAGS);
+
         } catch(err) {
             console.error('Sync failed:', err);
             showToast('Sync failed', true);
         }
     }
 
-    // --- Initialize Platform Settings ---
+    // ——— Initialize Platform Settings ———
     function initializeSettings() {
         platforms.forEach(platform => {
             const settings = selectedState.settings[platform];
@@ -282,6 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // ——— Function to update total hashtag count when user updates specific hashtag amount in platform settings ———
     function updateTotalHashtags(platform) {
         const niche = parseInt(document.getElementById(`${platform}-niche`).value) || 0;
         const popular = parseInt(document.getElementById(`${platform}-popular`).value) || 0;
@@ -392,24 +411,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             const settings = selectedState.settings[platform];
             const totalHashtags = settings.niche + settings.popular + settings.branded;
 
-            // Simple placeholder text
-            const caption = `This is a sample ${selectedState.category} caption (${Array.from(selectedState.tags).join(', ') || 'no tags'}) for ${platform}. Max chars: ${settings.chars}.`;
-            let hashtags = `#${selectedState.category.toLowerCase().replace(' ','')} `;
-            hashtags += Array.from({length: settings.popular}, (_, i) => `#popular${i+1}`).join(' ');
-            hashtags += Array.from({length: settings.niche}, (_, i) => `#niche${i+1}`).join(' ');
-            hashtags += Array.from({length: settings.branded}, (_, i) => `#brand${i+1}`).join(' ');
+            // Get random caption logic
+            const captionEntry = getFilteredCaptionForPlatform(platform, settings, selectedState);
+            const captionText = captionEntry
+                ? captionEntry.Caption
+                : `⚠️ No matching caption found for ${selectedState.category} under ${settings.chars} characters for ${platform}`;
 
-            // Add custom hashtags if any provided AND if platform is not excluded
-            if (selectedState.customHashtags && !selectedState.excludeCustomHashtags.has(platform)) {
-                // Basic processing: split by space/comma, filter empty, ensure '#' prefix
-                const customTags = selectedState.customHashtags
-                    .split(/[\s,]+/) // Split by space or comma
-                    .filter(tag => tag.length > 0)
-                    .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
-                    .join(' ');
-                if (customTags.length > 0) {
-                    hashtags += ` ${customTags}`;
-                }
+            // Get random caption logic
+            const hashtagData = getFilteredHashtagsForPlatform(platform, settings, selectedState);
+            let hashtagList = [
+                ...hashtagData.niche,
+                ...hashtagData.popular,
+                ...hashtagData.branded
+            ];
+
+            // Apply custom formatting per platform
+            let hashtags = '';
+
+            switch (platform) {
+                case 'Instagram':
+                    hashtags = `•\n•\n${hashtagList.join(' • ')}`;
+                    break;
+                case 'Facebook':
+                    hashtags = hashtagList.join(' | ');
+                    break;
+                case 'Threads':
+                    hashtags = hashtagList.map(tag => tag.replace(/^#/, '')).join(' | ');
+                    break;
+                default:
+                    hashtags = hashtagList.join(' ');
+            }
+
+            // Optional: append warning if exists
+            if (hashtagData.warning) {
+                hashtags += `\n${hashtagData.warning}`;
             }
 
             const platformOutput = document.createElement('div');
@@ -423,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </button>
                 </h4>
                 <div class="output-content">
-                    <div class="output-caption" id="caption-${platform}">${caption.substring(0, settings.chars)}</div>
+                    <div class="output-caption" id="caption-${platform}">${captionText}</div>
                     <div class="output-hashtags" id="hashtags-${platform}">${hashtags.trim()}</div>
                 </div>
             `;
@@ -432,6 +467,128 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add copy functionality after generating content
         addCopyButtonListeners();
     });
+
+    // ——— Function to get a random caption for intended platform that matches filters and platform settings  ———
+    function getFilteredCaptionForPlatform(platform, settings, state) {
+      const targetCategory = state.category?.toLowerCase();
+      const maxChars = settings.chars;
+
+      // The following is for debugging
+      // console.log(`🔍 Filtering captions for: ${platform}`);
+      // console.log(`➡️ Required category: "${targetCategory}", max chars: ${maxChars}`);
+
+      const matches = state.captions.filter(caption => {
+        const rawCaption = caption.Caption;
+        const identifiers = caption.Identifiers?.split(',').map(s => s.trim().toLowerCase()) || [];
+        const platforms = caption.Platforms?.split(',').map(s => s.trim().toLowerCase()) || [];
+        const charCount = parseInt(caption['Char Total'], 10);
+
+        const matchesIdentifier = identifiers.some(tag => tag.toLowerCase() === targetCategory?.toLowerCase());
+        const matchesPlatform = platforms.some(p => p.toLowerCase() === platform.toLowerCase()) || platforms.map(p => p.toLowerCase()).includes('all');
+        const withinCharLimit = !isNaN(charCount) && charCount <= maxChars;
+
+        // Only for debguggin: Log info for each caption considered
+        // console.log(`— Caption: "${rawCaption}"`);
+        // console.log(`   Identifiers:`, identifiers);
+        // console.log(`   Platforms:`, platforms);
+        // console.log(`   Char count:`, charCount);
+        // console.log(`   ✅ Category Match: ${matchesIdentifier}, Platform Match: ${matchesPlatform}, Char Limit: ${withinCharLimit}`);
+
+        return matchesIdentifier && matchesPlatform && withinCharLimit;
+      });
+
+      if (matches.length === 0) {
+        console.warn(`⚠️ No caption found for ${platform}`);
+        return null; // return null to indicate no match
+      }
+
+      const chosen = matches[Math.floor(Math.random() * matches.length)];
+      console.log(`✅ Selected caption for ${platform}:`, chosen);
+      return chosen; // return full object
+    }
+
+    // ——— Function to get a random hashtags for intended platform that matches filters and platform settings  ———
+    function getFilteredHashtagsForPlatform(platform, settings, state) {
+        const platformLower = platform.toLowerCase();
+        const category = state.category?.toLowerCase();
+        const tags = Array.from(state.tags).map(tag => tag.toLowerCase());
+
+        const result = {
+            niche: [],
+            popular: [],
+            branded: [],
+            warning: null
+        };
+
+        // --- 1. Parse and add custom hashtags if not excluded ---
+        const customAllowed = !state.excludeCustomHashtags.has(platform);
+        const customTags = customAllowed && state.customHashtags
+            ? state.customHashtags
+                .split(/[\s,]+/)
+                .filter(tag => tag.length > 0)
+                .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+            : [];
+
+        // Fill niche with custom first
+        const nicheTarget = settings.niche;
+        result.niche = customTags.slice(0, nicheTarget);
+        const neededNiche = nicheTarget - result.niche.length;
+
+        // --- 2. Define filtering helper ---
+        function matches(entry) {
+            const idents = entry.Identifiers?.split(',').map(s => s.trim().toLowerCase()) || [];
+            const plats  = entry.Platforms?.split(',').map(s => s.trim().toLowerCase()) || [];
+            const matchesPlatform = plats.includes(platformLower) || plats.includes("all");
+            const matchesCategory = idents.includes("all") || idents.includes(category);
+            const matchesTags     = idents.includes("all") || tags.some(tag => idents.includes(tag));
+            return matchesPlatform && (matchesCategory || matchesTags);
+        }
+
+        // --- 3. Separate eligible hashtags by type ---
+        const eligible = state.hashtags.filter(matches);
+        const nichePool   = eligible.filter(h => h.Type === 'Niche'   && !result.niche.includes(h.Hashtag));
+        const popularPool = eligible.filter(h => h.Type === 'Popular');
+        const brandedPool = eligible.filter(h => h.Type === 'Branded');
+
+        // --- 4. Helper to randomly select without duplicates ---
+        function pickRandom(arr, count) {
+            const copy = [...arr];
+            const picks = [];
+            while (picks.length < count && copy.length > 0) {
+                const i = Math.floor(Math.random() * copy.length);
+                picks.push(copy.splice(i, 1)[0].Hashtag);
+            }
+            return picks;
+        }
+
+        // --- 5. Fill in hashtags ---
+        result.niche.push(...pickRandom(nichePool, neededNiche));
+        result.popular = pickRandom(popularPool, settings.popular);
+        result.branded = pickRandom(brandedPool, settings.branded);
+
+        // --- 6. Final warnings if underfilled ---
+        const totalNiche = result.niche.length;
+        const totalPop   = result.popular.length;
+        const totalBrand = result.branded.length;
+
+        const missing = [];
+        if (totalNiche < settings.niche) {
+            missing.push(`${settings.niche - totalNiche} niche`);
+        }
+        if (totalPop < settings.popular) {
+            missing.push(`${settings.popular - totalPop} popular`);
+        }
+        if (totalBrand < settings.branded) {
+            missing.push(`${settings.branded - totalBrand} branded`);
+        }
+
+        if (missing.length > 0) {
+            result.warning = `⚠️ Not enough ${platform} hashtags:\nMissing ${missing.join(', ')}`;
+            console.warn(result.warning);
+        }
+        return result;
+    }
+
 
     // Add Copy Button Listeners Function
     function addCopyButtonListeners() {
@@ -531,9 +688,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Initial Setup ---
     await loadPlatformSettings();
+
+    // Get the current captions and hashtag data from the persistent IndexedDB to start
+    selectedState.captions = await getAllFromIndexedDB(STORE_CAPTIONS);
+    selectedState.hashtags = await getAllFromIndexedDB(STORE_HASHTAGS);
+
+    // Initialize other settings and start Google Sheet sync
     initializeSettings();
     await syncFromGoogleSheets();
+
     // Ensure the settings section starts collapsed (remove if expanded class was added by default)
     platformSettingsSection.classList.remove('expanded');
     customHashtagsSection.classList.remove('expanded');
 });
+
