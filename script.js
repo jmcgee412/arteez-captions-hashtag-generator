@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // ——— Cached DOM refs ———
     const mainCategoriesContainer = document.getElementById('main-categories');
     const additionalTagsContainer = document.getElementById('additional-tags');
     const platformSettingsContainer = document.getElementById('platform-settings');
@@ -24,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         excludeCustomHashtags: new Set() // Add property for platform exclusions
     };
 
-    // ——— Toast helper ———    
+    // ——— Toast helper ———
     function showToast(msg, isError = false) {
         const existing = document.querySelector('.toast');
 
@@ -62,25 +63,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+     // --- Google Sheets & IndexedDB Setup ---
+    const SHEET_ID = "15121EMhmrUMDrdkcr9vbePnMGtI67ilEYICaoAkFiDM";
+    const SHEET_NAME_CAPTIONS = 'CaptionBank';
+    const SHEET_NAME_HASHTAGS = 'HashtagBank';
+    const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxfCKH07OQ7-X5HDqRpsyzKkTXEvG5AO2NTZKYs3TdYZAEu08hfO2Y8ZheggiIghcXM/exec";
+    const DB_NAME = 'ARTeezCaptionHashtagGeneratorDB';
+    const STORE_CAPTIONS = 'captions';
+    const STORE_HASHTAGS = 'hashtags';
+    const STORE_SETTINGS = 'platformSettings';
+
     // --- Initialize IndexedDB ---
     function getDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open("CaptionHashtagGeneratorDB", 1);
-            request.onupgradeneeded = e => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains("platformSettings")) {
-                    db.createObjectStore("platformSettings", { keyPath: "id" });
-                    console.log("🆕 Created object store: platformSettings");
-                }
-            };
-            request.onsuccess = e => {
-                console.log("✅ IndexedDB opened successfully");
-                resolve(e.target.result);
-            };
-            request.onerror = e => {
-                console.error("❌ Failed to open IndexedDB", e);
-                reject(e);
-            };
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+              request.onupgradeneeded = e => {
+                  const db = e.target.result;
+                  // Platform settings store with explicit keyPath
+                  if (!db.objectStoreNames.contains(STORE_SETTINGS)) {
+                      db.createObjectStore(STORE_SETTINGS, { keyPath: 'id' });
+                      console.log('🆕 Created object store:', STORE_SETTINGS);
+                  }
+                  // Captions store with autoIncrement keys
+                  if (!db.objectStoreNames.contains(STORE_CAPTIONS)) {
+                      db.createObjectStore(STORE_CAPTIONS, { autoIncrement: true });
+                      console.log('🆕 Created object store:', STORE_CAPTIONS);
+                  }
+                  // Hashtags store with autoIncrement keys
+                  if (!db.objectStoreNames.contains(STORE_HASHTAGS)) {
+                      db.createObjectStore(STORE_HASHTAGS, { autoIncrement: true });
+                      console.log('🆕 Created object store:', STORE_HASHTAGS);
+                  }
+              };
+              request.onsuccess = e => {
+                  console.log('✅ IndexedDB opened successfully');
+                  resolve(e.target.result);
+              };
+              request.onerror = e => {
+                  console.error('❌ Failed to open IndexedDB', e);
+                  reject(e);
+              };
         });
     }
 
@@ -88,8 +110,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadPlatformSettings() {
       try {
         const db = await getDB();
-        const tx = db.transaction("platformSettings", "readonly");
-        const store = tx.objectStore("platformSettings");
+        const tx = db.transaction(STORE_SETTINGS, "readonly");
+        const store = tx.objectStore(STORE_SETTINGS);
 
         const result = await new Promise((resolve, reject) => {
           const request = store.get("userSettings");
@@ -114,11 +136,104 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Function to save platform settings ---
     async function savePlatformSettings(settings) {
         const db = await getDB();
-        const tx = db.transaction("platformSettings", "readwrite");
-        const store = tx.objectStore("platformSettings");
+        const tx = db.transaction(STORE_SETTINGS, "readwrite");
+        const store = tx.objectStore(STORE_SETTINGS);
         await store.put({ id: "userSettings", data: settings });
         console.log("💾 Saved platform settings:", settings);
+        showToast('Settings saved');
         return tx.complete;
+    }
+
+    // ——— Platform Default settings ———
+    function getDefaultPlatformSettings() {
+      return {
+        Instagram: { chars: 140, niche: 5, popular: 3, branded: 1 },
+        TikTok:    { chars: 140, niche: 3, popular: 2, branded: 1 },
+        Facebook:  { chars: 50,  niche: 2, popular: 0, branded: 0 },
+        Threads:   { chars: 140, niche: 2, popular: 0, branded: 1 },
+        Twitter:   { chars: 80,  niche: 1, popular: 1, branded: 0 },
+        Bluesky:   { chars: 140, niche: 2, popular: 2, branded: 1 },
+        Spoutible: { chars: 140, niche: 2, popular: 0, branded: 1 }
+      };
+    }
+
+    async function fetchSheet(sheetName) {
+      const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
+      const res  = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+
+      // Map column‐letters to our property names:
+      const keyMap = sheetName === SHEET_NAME_CAPTIONS
+        ? { A: 'Caption',  B: 'Identifiers',   C: 'Platforms',   D: 'Char Total' }
+        : { A: 'Hashtag',  B: 'Identifiers',   C: 'Platforms',   D: 'Type' };
+
+      // Grab the column letters in order:
+      const cols = json.table.cols.map(c => c.id); // e.g. ['A','B','C','D', ...]
+
+      // Look at the very first row’s first cell:
+      const allRows     = json.table.rows;
+      const firstCell   = allRows[0].c[0]?.v ?? '';
+      const expectedHdr = keyMap[cols[0]];        // 'Caption' or 'Hashtag'
+
+      // If the first cell matches our header label, drop it
+      const dataRows = firstCell === expectedHdr
+        ? allRows.slice(1)
+        : allRows;
+
+      return dataRows.map(r => {
+        // We’ll ignore the sheet’s own row‑number index and let IndexedDB auto‑key
+        const obj = {};
+
+        r.c.forEach((cell, i) => {
+          const key = keyMap[cols[i]];
+          if (key) obj[key] = cell?.v ?? '';
+        });
+
+        return obj;
+      });
+    }
+
+    async function syncFromGoogleSheets() {
+        try {
+            showToast('Syncing from Google Sheets…');
+            const [captions, hashtags] = await Promise.all([
+                fetchSheet(SHEET_NAME_CAPTIONS),
+                fetchSheet(SHEET_NAME_HASHTAGS),
+            ]);
+
+            const db = await getDB();
+
+            // Clear + add captions
+            {
+                let tx1 = db.transaction(STORE_CAPTIONS, 'readwrite');
+                let store1 = tx1.objectStore(STORE_CAPTIONS);
+                store1.clear();
+                captions.forEach(item => {
+                    delete item.id; // Remove id to ensure fresh auto-increment
+                    store1.add(item);
+                });
+                await tx1.complete;
+            }
+
+            // Clear + add hashtags
+            {
+                let tx2 = db.transaction(STORE_HASHTAGS, 'readwrite');
+                let store2 = tx2.objectStore(STORE_HASHTAGS);
+                store2.clear();
+                hashtags.forEach(item => {
+                    delete item.id;
+                    store2.add(item);
+                });
+                await tx2.complete;
+            }
+
+            showToast('Sync successful');
+
+        } catch(err) {
+            console.error('Sync failed:', err);
+            showToast('Sync failed', true);
+        }
     }
 
     // --- Initialize Platform Settings ---
@@ -173,18 +288,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const branded = parseInt(document.getElementById(`${platform}-branded`).value) || 0;
         const total = niche + popular + branded;
         document.getElementById(`${platform}-total`).textContent = total;
-    }
-
-    function getDefaultPlatformSettings() {
-      return {
-        Instagram: { chars: 140, niche: 5, popular: 3, branded: 1 },
-        TikTok:    { chars: 140, niche: 3, popular: 2, branded: 1 },
-        Facebook:  { chars: 50,  niche: 2, popular: 0, branded: 0 },
-        Threads:   { chars: 140, niche: 2, popular: 0, branded: 1 },
-        Twitter:   { chars: 80,  niche: 1, popular: 1, branded: 0 },
-        Bluesky:   { chars: 140, niche: 2, popular: 2, branded: 1 },
-        Spoutible: { chars: 140, niche: 2, popular: 0, branded: 1 }
-      };
     }
 
     // --- Event Listeners ---
@@ -429,6 +532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Initial Setup ---
     await loadPlatformSettings();
     initializeSettings();
+    await syncFromGoogleSheets();
     // Ensure the settings section starts collapsed (remove if expanded class was added by default)
     platformSettingsSection.classList.remove('expanded');
     customHashtagsSection.classList.remove('expanded');
