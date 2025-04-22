@@ -24,6 +24,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         excludeCustomHashtags: new Set() // Add property for platform exclusions
     };
 
+    // ——— Toast helper ———    
+    function showToast(msg, isError = false) {
+        const existing = document.querySelector('.toast');
+
+        if (existing) {
+            // Start fade-out transition
+            existing.style.opacity = '0';
+
+            // After fade-out completes (300ms), remove and show new toast
+            setTimeout(() => {
+                existing.remove();
+                createToast(msg, isError);
+            }, 300);
+        } else {
+            createToast(msg, isError);
+        }
+
+        function createToast(message, error) {
+            const t = document.createElement('div');
+            t.className = 'toast' + (error ? ' error' : '');
+            t.textContent = message;
+            t.style.opacity = '0'; // Start hidden for fade-in
+
+            document.body.appendChild(t);
+
+            // Trigger fade-in
+            requestAnimationFrame(() => {
+                t.style.opacity = '1';
+            });
+
+            // Fade out and remove after duration
+            setTimeout(() => {
+                t.style.opacity = '0';
+                setTimeout(() => t.remove(), 300);
+            }, 3000);
+        }
+    }
+
     // --- Initialize IndexedDB ---
     function getDB() {
         return new Promise((resolve, reject) => {
