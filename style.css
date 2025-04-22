@@ -664,6 +664,31 @@ input[type="number"] {
     user-select: none; /* Prevent text selection on label click */
 }
 
+.toast {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 20, 0.9);  /* deep, rich black-blue */
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 1.0);  /* cyan glow */
+  z-index: 9999;
+  animation: fadeInOut 3s forwards;
+}
+
+.toast.error {
+  background: rgba(200,0,0,0.9);
+}
+
+@keyframes fadeInOut {
+  0%,100% { opacity: 0; }
+  10%,90% { opacity: 1; }
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     body {
