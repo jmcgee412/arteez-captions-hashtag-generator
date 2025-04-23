@@ -159,13 +159,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ——— Platform Default settings ———
     function getDefaultPlatformSettings() {
       return {
-        Instagram: { chars: 140, niche: 5, popular: 3, branded: 1 },
-        TikTok:    { chars: 140, niche: 3, popular: 2, branded: 1 },
+        // Notes:
+        // Instagram: 40 chars is best for "before the fold" caption prior to the 'more' button because
+        // the additional hashtags will cause the 'more' button to always show up -- I am seeing it
+        // show up mostly on the 1st line in the normal feed (2nd line if viewing from my profile)
+        // and if accounting for the 'more' button on the 1st line and the chars count in my handle, that
+        // only allows about 40 more chars visually before it gets cut off
+        //
+        // TikTok: 70 chars is best for "before the fold" caption prior to the 'more' button because
+        // the additional hashtags will cause the 'more' button to always show up -- The handle is above
+        // the caption so those chars don't need to be included
+        //
+        // Facebook: 50 chars is best because it tests the best for reach -- We will also use only two
+        // hashtags and so everything will fit on 2 or 3 lines, avoiding the more button altogether
+        //
+        // Threads: 80 chars is best because there's no good data, so we will match it to Twitter -- We
+        // will have 3 hashtags and they all will be visible
+        //
+        // Twitter: 80 chars is best because it tests the best for reach -- We will use only 2 hashtags
+        // and everything will be visible
+        //
+        // Bluesky: 80 chars is best because there's no good data, so we will match it to Twitter -- We
+        // will have 5 hashtags and they all will be visible
+        //
+        // Spoutible: 80 chars is best because there's no good data, so we will match it to Twitter -- We
+        // will have 3 hashtags and they all will be visible
+        Instagram: { chars: 40, niche: 5, popular: 3, branded: 1 },
+        TikTok:    { chars: 70, niche: 3, popular: 2, branded: 1 },
         Facebook:  { chars: 50,  niche: 2, popular: 0, branded: 0 },
-        Threads:   { chars: 140, niche: 2, popular: 0, branded: 1 },
+        Threads:   { chars: 80, niche: 2, popular: 0, branded: 1 },
         Twitter:   { chars: 80,  niche: 1, popular: 1, branded: 0 },
-        Bluesky:   { chars: 140, niche: 2, popular: 2, branded: 1 },
-        Spoutible: { chars: 140, niche: 2, popular: 0, branded: 1 }
+        Bluesky:   { chars: 80, niche: 2, popular: 2, branded: 1 },
+        Spoutible: { chars: 80, niche: 2, popular: 0, branded: 1 }
       };
     }
 
@@ -427,16 +452,59 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Apply custom formatting per platform
             let hashtags = '';
+            console.log("Platform: ", platform);
 
             switch (platform) {
                 case 'Instagram':
-                    hashtags = `•\n•\n${hashtagList.join(' • ')}`;
+                    // Use middle dot to create two new lines to separate caption from hashtags -- No need
+                    // to use a hashtag separator because hashtags are hidden behind 'more' button
+                    hashtags = `·\n·\n${hashtagList.join(' ')}`;
+                    break;
+                case 'TikTok':
+                    // // Use a blank space between caption and hashtags, a 'more' button will show becuase of
+                    // the char count when including hashtags but the hashtags will be hidden by the 'more'
+                    // button -- However, the extra row should ensure the hashtags don't show on short captions
+                    hashtags = `\n${hashtagList.join(' ')}`;
                     break;
                 case 'Facebook':
-                    hashtags = hashtagList.join(' | ');
+                    // Don't use a line break and that should prevent the 'more' button from showing up, which
+                    // also means hashtags will show -- Use the middle dot as a hashtag separator
+                    hashtags = hashtagList.join(' · ');
                     break;
                 case 'Threads':
-                    hashtags = hashtagList.map(tag => tag.replace(/^#/, '')).join(' | ');
+                    // Use a blank space between caption and topics -- A 'more' button  will not appear so
+                    // topcis will show -- Use the middle dot as a topic separator -- Because hastags are
+                    // not really used, remove the '#' symbol and turn hashtags into words with spaces
+                    const formattedTopics = hashtagList
+                        .slice(0, 3) // Only 3 total: 2 + 1 branded
+                        .map(tag =>
+                            tag
+                            .replace(/^#/, '') // remove leading '#'
+                            .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2') // ARCanvas → AR Canvas
+                            .replace(/([a-z])([A-Z])/g, '$1 $2')       // augmentedReality → augmented Reality
+                        )
+                        .join(' · ');
+
+                    hashtags = `\n${formattedTopics}`;
+                    break;
+                case 'Twitter':
+                    // Use a blank space between caption and hashtag -- A 'more' button  will not appear so
+                    // hashtags will show -- Use the middle dot as a hashtag separator
+                    hashtags = `\n${hashtagList.join(' · ')}`;
+                    break;
+                case 'Bluesky':
+                    // Use a blank space between caption and hashtag -- A 'more' button  will not appear so
+                    // hashtags will show -- Use the middle dot as a hashtag separator -- Also character limit
+                    // on a line is around 40, so we when the char total of hashtag line goes over 40, we will
+                    // move that last hahstag to a new line and not remove the middle dot separator before that one
+                    hashtags = '\n' + formatWrappedHashtags(hashtagList, 40);
+                    break;
+                case 'Spoutible':
+                    // Use a blank space between caption and hashtag -- A 'more' button  will not appear so
+                    // hashtags will show -- Use the middle dot as a hashtag separator -- Also character limit
+                    // on a line is around 50, so we when the char total of hashtag line goes over 50, we will
+                    // move that last hahstag to a new line and not remove the middle dot separator before that one
+                    hashtags = '\n' + formatWrappedHashtags(hashtagList, 50);
                     break;
                 default:
                     hashtags = hashtagList.join(' ');
@@ -447,8 +515,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hashtags += `\n${hashtagData.warning}`;
             }
 
+            // Combine caption plus hashtags into one full caption output
+            const captionFullOutput = `${captionText}\n${hashtags}`;
+
             const platformOutput = document.createElement('div');
             platformOutput.classList.add('output-platform');
+
             platformOutput.innerHTML = `
                 <h4>
                     ${platform}
@@ -458,8 +530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </button>
                 </h4>
                 <div class="output-content">
-                    <div class="output-caption" id="caption-${platform}">${captionText}</div>
-                    <div class="output-hashtags" id="hashtags-${platform}">${hashtags.trim()}</div>
+                    <div class="output-caption" id="caption-${platform}">${captionFullOutput}</div>
                 </div>
             `;
             outputArea.appendChild(platformOutput);
@@ -467,6 +538,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add copy functionality after generating content
         addCopyButtonListeners();
     });
+
+    // ——— Function to wrap hashtags to a new line when max line length is reached ———
+    function formatWrappedHashtags(hashtags, maxLineLength) {
+        const lines = [];
+        let currentLine = '';
+
+        hashtags.forEach((tag, index) => {
+            const formattedTag = (currentLine.length === 0) ? tag : ` · ${tag}`;
+
+            if ((currentLine + formattedTag).length <= maxLineLength) {
+                currentLine += formattedTag;
+            } else {
+                // Push current line to result, start new one with no leading dot
+                if (currentLine) lines.push(currentLine);
+                currentLine = tag;
+            }
+        });
+
+        if (currentLine) lines.push(currentLine);
+        return lines.join('\n');
+    }
 
     // ——— Function to get a random caption for intended platform that matches filters and platform settings  ———
     function getFilteredCaptionForPlatform(platform, settings, state) {
@@ -601,18 +693,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const currentButton = event.currentTarget; // Use currentTarget
                 const platform = currentButton.dataset.platform;
                 const captionElement = document.getElementById(`caption-${platform}`);
-                const hashtagsElement = document.getElementById(`hashtags-${platform}`);
+                //const hashtagsElement = document.getElementById(`hashtags-${platform}`);
                 const copyTextElement = currentButton.querySelector('.copy-text');
                 const copyIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
                 const checkIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
 
-                if (captionElement && hashtagsElement && copyTextElement) {
+                if (captionElement && copyTextElement) {
                     const captionText = captionElement.innerText;
-                    const hashtagsText = hashtagsElement.innerText;
-                    const fullText = `${captionText}\n\n${hashtagsText}`;
 
-                    navigator.clipboard.writeText(fullText)
+                    navigator.clipboard.writeText(captionText)
                         .then(() => {
                             console.log(`${platform} content copied to clipboard!`);
                             // Provide visual feedback using class and icon change
@@ -701,4 +791,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     platformSettingsSection.classList.remove('expanded');
     customHashtagsSection.classList.remove('expanded');
 });
-
