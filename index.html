@@ -120,6 +120,220 @@
 
     </div>
 
+    <!-- Modal Structure (Hidden by default) -->
+    <div id="captions-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="close-captions-modal" title="Close">&times;</button>
+            <h3 class="modal-title">Caption Bank</h3>
+            <div class="modal-body" id="captions-modal-body">
+                <div class="caption-filters">
+                    <div class="filter-group">
+                        <label for="filter-caption-identifier">Identifier:</label>
+                        <select id="filter-caption-identifier">
+                            <option value="all">All Identifiers</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-caption-platform">Platform:</label>
+                        <select id="filter-caption-platform">
+                            <option value="all">All Platforms</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-caption-char-total">Max Chars:</label>
+                        <input type="number" id="filter-caption-char-total" placeholder="e.g., 500" min="0">
+                    </div>
+                </div>
+                <div class="caption-table-container">
+                    <table id="captions-table">
+                        <thead>
+                            <tr>
+                                <th class="col-caption">Caption</th>
+                                <th class="col-identifiers">Identifiers</th>
+                                <th class="col-platforms">Platforms</th>
+                                <th class="col-char-total">Chars</th>
+                            </tr>
+                        </thead>
+                        <tbody id="captions-table-body">
+                            <!-- Caption rows populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hashtags-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="close-hashtags-modal" title="Close">&times;</button>
+            <h3 class="modal-title">Hashtag Bank</h3>
+            <div class="modal-body" id="hashtags-modal-body">
+                <div class="hashtag-filters">
+                    <div class="filter-group">
+                        <label for="filter-identifier">Identifier:</label>
+                        <select id="filter-identifier">
+                            <option value="all">All</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-platform">Platform:</label>
+                        <select id="filter-platform">
+                            <option value="all">All</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-type">Type:</label>
+                        <select id="filter-type">
+                            <option value="all">All</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="hashtag-table-container">
+                    <table id="hashtags-table">
+                        <thead>
+                            <tr>
+                                <th>Hashtag</th>
+                                <th>Identifiers</th>
+                                <th>Platforms</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hashtags-table-body">
+                            <!-- Hashtag rows populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Captions Modal -->
+    <div id="add-captions-modal-overlay" class="modal-overlay">
+        <div class="modal-content add-captions-modal-content">
+            <button class="modal-close-btn" id="close-add-captions-modal" title="Close">&times;</button>
+            <h3 class="modal-title">Add New Captions</h3>
+            <div class="modal-body add-captions-modal-body">
+                <div class="add-captions-section">
+                    <label>Select Main Category (Choose one):</label>
+                    <div class="button-row" id="add-captions-category-btns">
+                        <button class="category-btn" data-category="Digital Art">Digital Art</button>
+                        <button class="category-btn" data-category="Weddings">Weddings</button>
+                        <button class="category-btn" data-category="Sports">Sports</button>
+                        <button class="category-btn" data-category="Moments">Moments</button>
+                        <button class="category-btn" data-category="Pets">Pets</button>
+                        <button class="category-btn" data-category="Memorial">Memorial</button>
+                    </div>
+                </div>
+                <div class="add-captions-section">
+                    <label>Select Platforms (Choose one or more):</label>
+                    <div class="button-grid" id="add-captions-platform-btns">
+                        <button class="platform-btn" data-platform="All">All</button>
+                        <button class="platform-btn" data-platform="Instagram">Instagram</button>
+                        <button class="platform-btn" data-platform="TikTok">TikTok</button>
+                        <button class="platform-btn" data-platform="Facebook">Facebook</button>
+                        <button class="platform-btn" data-platform="Threads">Threads</button>
+                        <button class="platform-btn" data-platform="Twitter">Twitter</button>
+                        <button class="platform-btn" data-platform="Bluesky">Bluesky</button>
+                        <button class="platform-btn" data-platform="Spoutible">Spoutible</button>
+                    </div>
+                </div>
+                <div class="add-captions-section">
+                    <label>Enter Captions:</label>
+                    <div id="add-captions-input-area">
+                        <div class="caption-input-wrapper">
+                             <textarea class="caption-input" placeholder="Enter caption..." rows="3"></textarea>
+                             <button class="remove-caption-btn" title="Remove Caption">&times;</button>
+                        </div>
+                        <!-- More textareas added dynamically here -->
+                    </div>
+                    <button id="add-another-caption-btn" class="management-btn add-another-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Add Another Caption
+                    </button>
+                </div>
+                 <div class="modal-footer">
+                     <button id="submit-add-captions-btn" class="action-btn submit-captions">
+                         Add Captions to Bank
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Add Hashtags Modal -->
+    <div id="add-hashtags-modal-overlay" class="modal-overlay">
+        <div class="modal-content add-hashtags-modal-content">
+            <button class="modal-close-btn" id="close-add-hashtags-modal" title="Close">&times;</button>
+            <h3 class="modal-title">Add New Hashtags</h3>
+            <div class="modal-body add-hashtags-modal-body">
+                <div class="add-hashtags-section">
+                    <label>Select Main Categories (Choose one or more):</label>
+                    <div class="button-row" id="add-hashtags-category-btns">
+                        <button class="category-btn" data-category="Digital Art">Digital Art</button>
+                        <button class="category-btn" data-category="Weddings">Weddings</button>
+                        <button class="category-btn" data-category="Sports">Sports</button>
+                        <button class="category-btn" data-category="Moments">Moments</button>
+                        <button class="category-btn" data-category="Pets">Pets</button>
+                        <button class="category-btn" data-category="Memorial">Memorial</button>
+                    </div>
+                </div>
+                <div class="add-hashtags-section">
+                    <label>Select Additional Tags (Choose one or more):</label>
+                    <div class="button-grid" id="add-hashtags-tags-btns">
+                        <button class="tag-btn" data-tag="All">All</button>
+                        <button class="tag-btn" data-tag="Inspiring">Inspiring</button>
+                        <button class="tag-btn" data-tag="Creative">Creative</button>
+                        <button class="tag-btn" data-tag="Trippy">Trippy</button>
+                        <button class="tag-btn" data-tag="Memories">Memories</button>
+                        <button class="tag-btn" data-tag="Custom">Custom</button>
+                        <button class="tag-btn" data-tag="Gifting">Gifting</button>
+                        <button class="tag-btn" data-tag="Romantic">Romantic</button>
+                        <button class="tag-btn" data-tag="Spiritual">Spiritual</button>
+                        <button class="tag-btn" data-tag="Nostalgic">Nostalgic</button>
+                        <button class="tag-btn" data-tag="Emotional">Emotional</button>
+                        <button class="tag-btn" data-tag="Storytelling">Storytelling</button>
+                        <button class="tag-btn" data-tag="Trending">Trending</button>
+                    </div>
+                </div>
+                <div class="add-hashtags-section">
+                    <label>Select Platforms (Choose one or more):</label>
+                    <div class="button-grid" id="add-hashtags-platform-btns">
+                        <button class="platform-btn" data-platform="All">All</button>
+                        <button class="platform-btn" data-platform="Instagram">Instagram</button>
+                        <button class="platform-btn" data-platform="TikTok">TikTok</button>
+                        <button class="platform-btn" data-platform="Facebook">Facebook</button>
+                        <button class="platform-btn" data-platform="Threads">Threads</button>
+                        <button class="platform-btn" data-platform="Twitter">Twitter</button>
+                        <button class="platform-btn" data-platform="Bluesky">Bluesky</button>
+                        <button class="platform-btn" data-platform="Spoutible">Spoutible</button>
+                    </div>
+                </div>
+                <div class="add-hashtags-section">
+                    <label>Select Hashtag Type (Choose one):</label>
+                    <div class="button-row" id="add-hashtags-type-btns">
+                        <button class="type-btn" data-type="Niche">Niche</button>
+                        <button class="type-btn" data-type="Popular">Popular</button>
+                        <button class="type-btn" data-type="Branded">Branded</button>
+                    </div>
+                </div>
+                <div class="add-hashtags-section">
+                    <label for="add-hashtags-input">Enter Hashtags (separated by space or comma):</label>
+                    <textarea id="add-hashtags-input" placeholder="#tag1 #anotherTag, #commaSeparatedTag..." rows="4"></textarea>
+                </div>
+                 <div class="modal-footer">
+                     <button id="submit-add-hashtags-btn" class="action-btn submit-hashtags">
+                         Add Hashtags to Bank
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Modal Structure -->
+
     <script src="script.js"></script>
 </body>
 </html>
