@@ -2,7 +2,7 @@
   "name": "AR Teez Captions Hashtags Generator",
   "short_name": "AR Teez Hashtags",
   "start_url": ".",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "icons": [
