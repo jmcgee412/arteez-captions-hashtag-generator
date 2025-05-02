@@ -16,6 +16,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const customHashtagsSection = document.getElementById('custom-hashtags-section'); // Get custom hashtags section
     const platformExclusionsContainer = document.getElementById('platform-exclusions'); // Container for exclusion checkboxes
 
+    // Modal elements
+    const captionsModalOverlay = document.getElementById('captions-modal-overlay');
+    const captionsModalBody = document.getElementById('captions-modal-body');
+    const closeCaptionsModalBtn = document.getElementById('close-captions-modal');
+    const hashtagsModalOverlay = document.getElementById('hashtags-modal-overlay');
+    const hashtagsModalBody = document.getElementById('hashtags-modal-body');
+    const closeHashtagsModalBtn = document.getElementById('close-hashtags-modal');
+
+    // Caption Modal Filters & Table
+    const filterCaptionIdentifierSelect = document.getElementById('filter-caption-identifier');
+    const filterCaptionPlatformSelect = document.getElementById('filter-caption-platform');
+    const filterCaptionCharTotalInput = document.getElementById('filter-caption-char-total');
+    const captionsTableBody = document.getElementById('captions-table-body');
+
+    // Hashtag Modal Filters & Table
+    const filterIdentifierSelect = document.getElementById('filter-identifier');
+    const filterPlatformSelect = document.getElementById('filter-platform');
+    const filterTypeSelect = document.getElementById('filter-type');
+    const hashtagsTableBody = document.getElementById('hashtags-table-body');
+
+    const addCaptionsModalOverlay = document.getElementById('add-captions-modal-overlay');
+    const closeAddCaptionsModalBtn = document.getElementById('close-add-captions-modal');
+    const addCaptionsCategoryBtns = document.getElementById('add-captions-category-btns');
+    const addCaptionsPlatformBtns = document.getElementById('add-captions-platform-btns');
+    const addCaptionsInputArea = document.getElementById('add-captions-input-area');
+    const addAnotherCaptionBtn = document.getElementById('add-another-caption-btn');
+    const submitAddCaptionsBtn = document.getElementById('submit-add-captions-btn');
+
+    const addHashtagsModalOverlay = document.getElementById('add-hashtags-modal-overlay');
+    const closeAddHashtagsModalBtn = document.getElementById('close-add-hashtags-modal');
+    const addHashtagsCategoryBtns = document.getElementById('add-hashtags-category-btns');
+    const addHashtagsTagsBtns = document.getElementById('add-hashtags-tags-btns');
+    const addHashtagsPlatformBtns = document.getElementById('add-hashtags-platform-btns');
+    const addHashtagsTypeBtns = document.getElementById('add-hashtags-type-btns');
+    const addHashtagsInput = document.getElementById('add-hashtags-input');
+    const submitAddHashtagsBtn = document.getElementById('submit-add-hashtags-btn');
+
     const platforms = ["Instagram", "TikTok", "Facebook", "Threads", "Twitter", "Bluesky", "Spoutible"];
     const selectedState = {
         category: null,
@@ -23,6 +60,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         settings: {},
         customHashtags: '',
         excludeCustomHashtags: new Set() // Add property for platform exclusions
+    };
+
+    const addCaptionState = {
+        category: null,
+        platforms: new Set()
+    };
+
+    const addHashtagState = {
+        categories: new Set(),
+        tags: new Set(),
+        platforms: new Set(),
+        type: null
     };
 
     // ——— Toast helper ———
@@ -45,8 +94,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         function createToast(message, error) {
             const t = document.createElement('div');
             t.className = 'toast' + (error ? ' error' : '');
-            t.textContent = message;
+            t.innerHTML = message.replace(/\n/g, '<br>');
             t.style.opacity = '0'; // Start hidden for fade-in
+            t.style.textAlign = 'center';
 
             document.body.appendChild(t);
 
@@ -67,7 +117,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const SHEET_ID = "15121EMhmrUMDrdkcr9vbePnMGtI67ilEYICaoAkFiDM";
     const SHEET_NAME_CAPTIONS = 'CaptionBank';
     const SHEET_NAME_HASHTAGS = 'HashtagBank';
-    const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxfCKH07OQ7-X5HDqRpsyzKkTXEvG5AO2NTZKYs3TdYZAEu08hfO2Y8ZheggiIghcXM/exec";
+    //const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbxfCKH07OQ7-X5HDqRpsyzKkTXEvG5AO2NTZKYs3TdYZAEu08hfO2Y8ZheggiIghcXM/exec";
+    const SHEET_WRITE_URL = "https://script.google.com/macros/s/AKfycbwxPEluvEcxdG2DLcDSOzatbwEx5sDAJNN9NVCOKkPRD2HIiA-_jW-gi4FKyUrppggZ/exec";
     const DB_NAME = 'ARTeezCaptionHashtagGeneratorDB';
     const STORE_CAPTIONS = 'captions';
     const STORE_HASHTAGS = 'hashtags';
@@ -117,6 +168,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             request.onerror = () => reject(request.error);
         });
     }
+
+    // ——— Add new information to IndexedDB (add captions, hashtags) ———
+    async function addToIndexedDB(storeName, dataArray) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        dataArray.forEach(item => store.add(item));
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = (e) => reject(e);
+    });
+}
+
 
     // ——— Function to load platform settings ———
     async function loadPlatformSettings() {
@@ -279,6 +343,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ——— Function write new data to Google Sheets for each bank ———
+    async function sendToGoogleSheets(dataArray, sheetName) {
+      const url = SHEET_WRITE_URL;
+
+      for (const item of dataArray) {
+        const formData = new FormData();
+        formData.append('sheetName', sheetName);
+
+        // Append all key-value pairs from the object
+        for (const [key, value] of Object.entries(item)) {
+          formData.append(key, value);
+        }
+
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (!response.ok || result.status !== 'success') {
+              console.error('❌ Failed to submit to Google Sheets:', result);
+          } else {
+              console.log('✅ Submitted to Google Sheets:', item);
+          }
+        } catch (err) {
+          console.error('❌ Error submitting to Google Sheets:', err);
+        }
+      }
+    }
+
     // ——— Initialize Platform Settings ———
     function initializeSettings() {
         platforms.forEach(platform => {
@@ -333,6 +429,78 @@ document.addEventListener('DOMContentLoaded', async () => {
         const total = niche + popular + branded;
         document.getElementById(`${platform}-total`).textContent = total;
     }
+
+    // ——— Function to get accurate character count for captions that include emojis ———
+    function getAccurateCharacterCount(str) {
+        if (typeof Intl === 'undefined' || !Intl.Segmenter) {
+            throw new Error('Intl.Segmenter is not supported in this environment.');
+        }
+
+        const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+        const graphemes = Array.from(segmenter.segment(str));
+        return graphemes.length;
+    }
+
+    // --- Modal Functionality ---
+    function openModal(modalOverlay) {
+        modalOverlay.classList.add('modal-open');
+        document.body.classList.add('modal-open'); // Prevent background scroll
+    }
+
+    function closeModal(modalOverlay) {
+        modalOverlay.classList.remove('modal-open');
+        // Only remove body class if no other modals are open
+        if (!document.querySelector('.modal-overlay.modal-open')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+
+    function resetAddCaptionsModal() {
+        addCaptionState.category = null;
+        addCaptionState.platforms.clear();
+
+        addCaptionsCategoryBtns.querySelectorAll('.category-btn.active').forEach(btn => btn.classList.remove('active'));
+        addCaptionsPlatformBtns.querySelectorAll('.platform-btn.active').forEach(btn => btn.classList.remove('active'));
+
+        const allInputs = addCaptionsInputArea.querySelectorAll('.caption-input-wrapper');
+        allInputs.forEach((wrapper, index) => {
+            if (index === 0) {
+                wrapper.querySelector('.caption-input').value = '';
+            } else {
+                wrapper.remove();
+            }
+        });
+        const firstRemoveBtn = addCaptionsInputArea.querySelector('.caption-input-wrapper:first-child .remove-caption-btn');
+        if(firstRemoveBtn) firstRemoveBtn.style.display = 'none';
+    }
+
+    function resetAddHashtagsModal() {
+        addHashtagState.categories.clear();
+        addHashtagState.tags.clear();
+        addHashtagState.platforms.clear();
+        addHashtagState.type = null;
+
+        addHashtagsCategoryBtns.querySelectorAll('.category-btn.active').forEach(btn => btn.classList.remove('active'));
+        addHashtagsTagsBtns.querySelectorAll('.tag-btn.active').forEach(btn => btn.classList.remove('active'));
+        addHashtagsPlatformBtns.querySelectorAll('.platform-btn.active').forEach(btn => btn.classList.remove('active'));
+        addHashtagsTypeBtns.querySelectorAll('.type-btn.active').forEach(btn => btn.classList.remove('active'));
+        addHashtagsInput.value = '';
+    }
+
+    // Close modal when clicking overlay background
+    [captionsModalOverlay, hashtagsModalOverlay, addCaptionsModalOverlay, addHashtagsModalOverlay].forEach(overlay => {
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                closeModal(overlay);
+            }
+        });
+    });
+
+    // Close modal buttons
+    closeCaptionsModalBtn.addEventListener('click', () => closeModal(captionsModalOverlay));
+    closeHashtagsModalBtn.addEventListener('click', () => closeModal(hashtagsModalOverlay));
+    closeAddCaptionsModalBtn.addEventListener('click', () => closeModal(addCaptionsModalOverlay));
+    closeAddHashtagsModalBtn.addEventListener('click', () => closeModal(addHashtagsModalOverlay));
 
     // --- Event Listeners ---
 
@@ -579,7 +747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const matchesPlatform = platforms.some(p => p.toLowerCase() === platform.toLowerCase()) || platforms.map(p => p.toLowerCase()).includes('all');
         const withinCharLimit = !isNaN(charCount) && charCount <= maxChars;
 
-        // Only for debguggin: Log info for each caption considered
+        // Only for debgugging: Log info for each caption considered
         // console.log(`— Caption: "${rawCaption}"`);
         // console.log(`   Identifiers:`, identifiers);
         // console.log(`   Platforms:`, platforms);
@@ -758,23 +926,528 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log("🔄 Reset to default platform settings.");
     });
 
-    // Content Management Button Placeholders
-    addCaptionBtn.addEventListener('click', () => {
-        console.log("Add New Captions clicked");
-        alert("Functionality to add new captions is not yet implemented.");
-    });
-    addHashtagBtn.addEventListener('click', () => {
-        console.log("Add New Hashtags clicked");
-        alert("Functionality to add new hashtags is not yet implemented.");
-    });
     viewCaptionsBtn.addEventListener('click', () => {
         console.log("View Captions Bank clicked");
-        alert("Functionality to view captions bank is not yet implemented.");
+        window.captionsData = selectedState.captions.map(item => ({
+            caption: item.Caption,
+            identifiers: item.Identifiers?.split(',').map(s => s.trim()) || [],
+            platforms: item.Platforms?.split(',').map(s => s.trim()) || [],
+            charTotal: parseInt(item['Char Total'], 10) || item.caption?.length || 0
+        }));
+        populateCaptionFilters(); // Populate filters
+        filterCaptions(); // Render initial full table
+        openModal(captionsModalOverlay);
     });
+
     viewHashtagsBtn.addEventListener('click', () => {
         console.log("View Hashtags Bank clicked");
-        alert("Functionality to view hashtags bank is not yet implemented.");
+        window.hashtagsData = selectedState.hashtags.map(item => ({
+            hashtag: item.Hashtag,
+            identifiers: item.Identifiers?.split(',').map(s => s.trim()) || [],
+            platforms: item.Platforms?.split(',').map(s => s.trim()) || [],
+            type: item.Type || ''
+        }));
+        populateHashtagFilters(); // Populate filters first
+        filterHashtags(); // Render initial full table
+        openModal(hashtagsModalOverlay);
     });
+
+    // --- Caption Modal Logic ---
+
+    // Function to populate caption filter dropdowns
+    function populateCaptionFilters() {
+        const identifiers = new Set();
+        const platformsSet = new Set();
+
+        window.captionsData.forEach(item => {
+            item.identifiers.forEach(id => identifiers.add(id));
+            if (Array.isArray(item.platforms)) {
+                item.platforms.forEach(p => platformsSet.add(p));
+            }
+        });
+
+        // Populate Identifier Filter
+        filterCaptionIdentifierSelect.innerHTML = '<option value="allIdentifiers">All Identifiers</option>';
+        [...identifiers].sort().forEach(id => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = id;
+            filterCaptionIdentifierSelect.appendChild(option);
+        });
+
+        // Populate Platform Filter
+        filterCaptionPlatformSelect.innerHTML = '<option value="allPlatforms">All Platforms</option>';
+        [...platformsSet].sort().forEach(p => {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = p;
+            filterCaptionPlatformSelect.appendChild(option);
+        });
+
+        // Reset Char Total filter input
+        filterCaptionCharTotalInput.value = '';
+    }
+
+    // Function to render captions in the table
+    function renderCaptionsTable(filteredData) {
+        captionsTableBody.innerHTML = ''; // Clear existing rows
+
+        if (filteredData.length === 0) {
+            captionsTableBody.innerHTML = '<tr><td colspan="4" class="no-results">No captions match the current filters.</td></tr>';
+            return;
+        }
+
+        filteredData.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="col-caption">${item.caption}</td>
+                <td class="col-identifiers">${item.identifiers.join(', ')}</td>
+                <td class="col-platforms">${Array.isArray(item.platforms) ? item.platforms.join(', ') : item.platforms}</td>
+                <td class="col-char-total">${item.charTotal}</td>
+            `;
+            captionsTableBody.appendChild(row);
+        });
+    }
+
+    // Function to filter caption data
+    function filterCaptions() {
+        const selectedIdentifier = filterCaptionIdentifierSelect.value;
+        const selectedPlatform = filterCaptionPlatformSelect.value;
+
+        const maxCharsValue = filterCaptionCharTotalInput.value.trim();
+        const maxChars = maxCharsValue === '' ? Infinity : parseInt(maxCharsValue, 10);
+
+        // Handle invalid number input for chars (though min="0" helps)
+        const charLimit = isNaN(maxChars) || maxChars < 0 ? Infinity : maxChars;
+
+        const filtered = (window.captionsData || []).filter(item => {
+
+            const identifiers = item.identifiers.map(id => id.toLowerCase());
+            const platforms = item.platforms.map(p => p.toLowerCase());
+            const selectedId = filterCaptionIdentifierSelect.value.toLowerCase();
+            const selectedPlat = filterCaptionPlatformSelect.value.toLowerCase();
+
+            const identifierMatch =
+              selectedId === 'allidentifiers' ||
+              identifiers.includes(selectedId) ||
+              identifiers.includes('all');
+
+              const platformMatch =
+                selectedPlat === 'allplatforms' ||
+                platforms.includes(selectedPlat) ||
+                platforms.includes('all');
+
+            const charTotalMatch = item.charTotal <= charLimit;
+
+            return identifierMatch && platformMatch && charTotalMatch;
+        });
+
+        renderCaptionsTable(filtered);
+    }
+
+    // Add event listeners to caption filter dropdowns/input
+    filterCaptionIdentifierSelect.addEventListener('change', filterCaptions);
+    filterCaptionPlatformSelect.addEventListener('change', filterCaptions);
+    filterCaptionCharTotalInput.addEventListener('input', filterCaptions); // Use input for immediate feedback
+
+    // --- Hashtag Modal Logic ---
+
+    // Function to populate filter dropdowns
+    function populateHashtagFilters() {
+        const identifiers = new Set();
+        const platformsSet = new Set();
+        const types = new Set();
+
+        window.hashtagsData.forEach(item => {
+            item.identifiers.forEach(id => identifiers.add(id));
+            if (Array.isArray(item.platforms)) {
+                item.platforms.forEach(p => platformsSet.add(p));
+            }
+            types.add(item.type);
+        });
+
+        // Populate Identifier Filter
+        filterIdentifierSelect.innerHTML = '<option value="allIdentifiers">All Identifiers</option>';
+        [...identifiers].sort().forEach(id => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = id;
+            filterIdentifierSelect.appendChild(option);
+        });
+
+        // Populate Platform Filter
+        filterPlatformSelect.innerHTML = '<option value="allPlatforms">All Platforms</option>';
+        [...platformsSet].sort().forEach(p => {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = p;
+            filterPlatformSelect.appendChild(option);
+        });
+
+        // Populate Type Filter
+        filterTypeSelect.innerHTML = '<option value="all">All Types</option>'; // Reset
+        [...types].sort().forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            filterTypeSelect.appendChild(option);
+        });
+    }
+
+    // Function to render hashtags in the table
+    function renderHashtagsTable(filteredData) {
+        hashtagsTableBody.innerHTML = ''; // Clear existing rows
+
+        if (filteredData.length === 0) {
+            hashtagsTableBody.innerHTML = '<tr><td colspan="4" class="no-results">No hashtags match the current filters.</td></tr>';
+            return;
+        }
+
+        filteredData.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.hashtag}</td>
+                <td>${item.identifiers.join(', ')}</td>
+                <td>${Array.isArray(item.platforms) ? item.platforms.join(', ') : item.platforms}</td>
+                <td>${item.type}</td>
+            `;
+            hashtagsTableBody.appendChild(row);
+        });
+    }
+
+    // Function to filter hashtag data
+    function filterHashtags() {
+        const selectedIdentifier = filterIdentifierSelect.value;
+        const selectedPlatform = filterPlatformSelect.value;
+        const selectedType = filterTypeSelect.value;
+
+        const filtered = (window.hashtagsData || []).filter(item => {
+
+            const identifiers = item.identifiers.map(id => id.toLowerCase());
+            const platforms = item.platforms.map(p => p.toLowerCase());
+            const type = item.type?.toLowerCase() || '';
+
+            const selectedId = filterIdentifierSelect.value.toLowerCase();
+            const selectedPlat = filterPlatformSelect.value.toLowerCase();
+            const selectedType = filterTypeSelect.value.toLowerCase();
+
+            const identifierMatch =
+              selectedId === 'allidentifiers' ||
+              identifiers.includes(selectedId) ||
+              identifiers.includes('all');
+
+              const platformMatch =
+                selectedPlat === 'allplatforms' ||
+                platforms.includes(selectedPlat) ||
+                platforms.includes('all');
+
+            const typeMatch = selectedType === 'all' || type === selectedType;
+
+            return identifierMatch && platformMatch && typeMatch;
+        });
+
+        renderHashtagsTable(filtered);
+    }
+
+    addCaptionBtn.addEventListener('click', () => {
+        console.log("Add New Captions clicked - opening modal");
+        resetAddCaptionsModal();
+        openModal(addCaptionsModalOverlay);
+    });
+
+    addCaptionsCategoryBtns.addEventListener('click', (event) => {
+        if (event.target.classList.contains('category-btn')) {
+            addCaptionsCategoryBtns.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            addCaptionState.category = event.target.dataset.category;
+            console.log("Add Caption - Selected category:", addCaptionState.category);
+        }
+    });
+
+    addCaptionsPlatformBtns.addEventListener('click', (event) => {
+        if (event.target.classList.contains('platform-btn')) {
+            const platform = event.target.dataset.platform;
+            const isActive = event.target.classList.toggle('active');
+            const allButton = addCaptionsPlatformBtns.querySelector('.platform-btn[data-platform="All"]');
+
+            if (platform === 'All') {
+                if (isActive) {
+                    addCaptionState.platforms.clear();
+                    addCaptionState.platforms.add('All');
+                    addCaptionsPlatformBtns.querySelectorAll('.platform-btn:not([data-platform="All"])').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                } else {
+                    addCaptionState.platforms.delete('All');
+                }
+            } else {
+                if (isActive) {
+                    if (allButton.classList.contains('active')) {
+                        allButton.classList.remove('active');
+                        addCaptionState.platforms.delete('All');
+                    }
+                    addCaptionState.platforms.add(platform);
+                } else {
+                    addCaptionState.platforms.delete(platform);
+                }
+            }
+            console.log("Add Caption - Selected platforms:", Array.from(addCaptionState.platforms));
+        }
+    });
+
+    addAnotherCaptionBtn.addEventListener('click', () => {
+        const newInputWrapper = document.createElement('div');
+        newInputWrapper.classList.add('caption-input-wrapper');
+        newInputWrapper.innerHTML = `
+            <textarea class="caption-input" placeholder="Enter another caption..." rows="3"></textarea>
+            <button class="remove-caption-btn" title="Remove Caption">&times;</button>
+        `;
+        addCaptionsInputArea.appendChild(newInputWrapper);
+
+        newInputWrapper.querySelector('.remove-caption-btn').addEventListener('click', (e) => {
+            e.target.closest('.caption-input-wrapper').remove();
+        });
+    });
+
+    addCaptionsInputArea.addEventListener('click', (event) => {
+        if (event.target.classList.contains('remove-caption-btn')) {
+            if (event.target.closest('.caption-input-wrapper') !== addCaptionsInputArea.querySelector('.caption-input-wrapper:first-child')) {
+                event.target.closest('.caption-input-wrapper').remove();
+            }
+        }
+    });
+
+    submitAddCaptionsBtn.addEventListener('click', async () => {
+        const category = addCaptionState.category;
+        const platformsSelected = Array.from(addCaptionState.platforms);
+        const finalPlatforms = platformsSelected.includes('All') ? 'All' : platformsSelected;
+
+        const captionInputs = addCaptionsInputArea.querySelectorAll('.caption-input');
+        const newCaptions = [];
+
+        if (!category) {
+            alert('Please select a main category.');
+            return;
+        }
+        if (platformsSelected.length === 0) {
+            alert('Please select at least one platform (or "All").');
+            return;
+        }
+
+        let hasValidCaption = false;
+        captionInputs.forEach(input => {
+            const captionText = input.value.trim();
+            if (captionText) {
+                hasValidCaption = true;
+                const charTotal = getAccurateCharacterCount(captionText);
+                newCaptions.push({
+                    Caption: captionText,
+                    Identifiers: category,
+                    Platforms: Array.isArray(finalPlatforms) ? finalPlatforms.join(', ') : finalPlatforms,
+                    'Char Total': charTotal
+                });
+            }
+        });
+
+        if (!hasValidCaption) {
+            alert('Please enter at least one caption.');
+            return;
+        }
+
+        // Add new captions to IndexedDB and update captions stored in web app's memory
+        let indexedDBSuccess = false;
+        try {
+            await addToIndexedDB(STORE_CAPTIONS, newCaptions);
+            console.log("✅ Captions updated in IndexedDB successfully");
+            showToast(`${newCaptions.length} New Captions\nSuccessfully Added`);
+
+            // Only update local state if IndexedDB was successful
+            selectedState.captions = await getAllFromIndexedDB(STORE_CAPTIONS);
+            console.log("🔄 selectedState.captions updated");
+        } catch (err) {
+            console.error("❌ Failed to update captions in IndexedDBs:", err);
+            alert("Failed to add new captions locally.");
+        }
+
+        // Close the modal now so user can continue and then send to Google Sheets in the background
+        closeModal(addCaptionsModalOverlay);
+
+        // Update Google Sheets with new captions
+        try {
+            await sendToGoogleSheets(newCaptions, SHEET_NAME_CAPTIONS);
+            console.log("✅ Captions updated in Google Sheets successfully");
+        } catch (err) {
+            console.error("❌ Failed to sync with Google Sheets for captions:", err);
+            alert("Failed to add new captions to Google Sheets.");
+        }
+    });
+
+    addHashtagBtn.addEventListener('click', () => {
+        console.log("Add New Hashtags clicked - opening modal");
+        resetAddHashtagsModal();
+        openModal(addHashtagsModalOverlay);
+    });
+
+    addHashtagsCategoryBtns.addEventListener('click', (event) => {
+        if (event.target.classList.contains('category-btn')) {
+            const category = event.target.dataset.category;
+            const isActive = event.target.classList.toggle('active');
+            if (isActive) {
+                addHashtagState.categories.add(category);
+            } else {
+                addHashtagState.categories.delete(category);
+            }
+            console.log("Add Hashtag - Selected categories:", Array.from(addHashtagState.categories));
+        }
+    });
+
+    addHashtagsTagsBtns.addEventListener('click', (event) => {
+        if (event.target.classList.contains('tag-btn')) {
+            const tag = event.target.dataset.tag;
+            const isActive = event.target.classList.toggle('active');
+            const allButton = addHashtagsTagsBtns.querySelector('.tag-btn[data-tag="All"]');
+
+            if (tag === 'All') {
+                if (isActive) {
+                    addHashtagState.tags.clear();
+                    addHashtagState.tags.add('All');
+                    addHashtagsTagsBtns.querySelectorAll('.tag-btn:not([data-tag="All"])').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                } else {
+                    addHashtagState.tags.delete('All');
+                }
+            } else {
+                if (isActive) {
+                    if (allButton.classList.contains('active')) {
+                        allButton.classList.remove('active');
+                        addHashtagState.tags.delete('All');
+                    }
+                    addHashtagState.tags.add(tag);
+                } else {
+                    addHashtagState.tags.delete(tag);
+                }
+            }
+            console.log("Add Hashtag - Selected tags:", Array.from(addHashtagState.tags));
+        }
+    });
+
+    addHashtagsPlatformBtns.addEventListener('click', (event) => {
+        if (event.target.classList.contains('platform-btn')) {
+            const platform = event.target.dataset.platform;
+            const isActive = event.target.classList.toggle('active');
+            const allButton = addHashtagsPlatformBtns.querySelector('.platform-btn[data-platform="All"]');
+
+            if (platform === 'All') {
+                if (isActive) {
+                    addHashtagState.platforms.clear();
+                    addHashtagState.platforms.add('All');
+                    addHashtagsPlatformBtns.querySelectorAll('.platform-btn:not([data-platform="All"])').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                } else {
+                    addHashtagState.platforms.delete('All');
+                }
+            } else {
+                if (isActive) {
+                    if (allButton.classList.contains('active')) {
+                        allButton.classList.remove('active');
+                        addHashtagState.platforms.delete('All');
+                    }
+                    addHashtagState.platforms.add(platform);
+                } else {
+                    addHashtagState.platforms.delete(platform);
+                }
+            }
+            console.log("Add Hashtag - Selected platforms:", Array.from(addHashtagState.platforms));
+        }
+    });
+
+    addHashtagsTypeBtns.addEventListener('click', (event) => {
+        if (event.target.classList.contains('type-btn')) {
+            addHashtagsTypeBtns.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            addHashtagState.type = event.target.dataset.type;
+            console.log("Add Hashtag - Selected type:", addHashtagState.type);
+        }
+    });
+
+    submitAddHashtagsBtn.addEventListener('click', async () => {
+        const categories = Array.from(addHashtagState.categories);
+        const tags = Array.from(addHashtagState.tags);
+        const platforms = Array.from(addHashtagState.platforms);
+        const type = addHashtagState.type;
+        const hashtagText = addHashtagsInput.value.trim();
+
+        if (categories.length === 0) {
+            alert('Please select at least one category.');
+            return;
+        }
+        if (tags.length === 0 && !tags.includes('All')) {
+            alert('Please select at least one tag or "All".');
+            return;
+        }
+        if (platforms.length === 0 && !platforms.includes('All')) {
+            alert('Please select at least one platform or "All".');
+            return;
+        }
+        if (!type) {
+            alert('Please select a hashtag type.');
+            return;
+        }
+        if (hashtagText.length === 0) {
+            alert('Please enter a hashtag.');
+            return;
+        }
+
+        const cleanedHashtags = hashtagText
+            .split(/[\s,]+/)                           // Split on space or comma
+            .filter(h => h.trim())                    // Remove empty entries
+            .map(h => h.startsWith('#') ? h : `#${h}`); // Ensure hashtag symbol
+
+        const finalIdentifiers = categories.join(', ');
+        const finalPlatforms = platforms.includes('All') ? 'All' : platforms.join(', ');
+
+        // Build one entry per hashtag
+        const newHashtags = cleanedHashtags.map(tag => ({
+            Hashtag: tag,
+            Identifiers: finalIdentifiers,
+            Platforms: finalPlatforms,
+            Type: type
+        }));
+
+        // // Add new hashtags to IndexedDB and update captions stored in web app's memory
+        let indexedDBSuccess = false;
+        try {
+            await addToIndexedDB(STORE_HASHTAGS, newHashtags);
+            console.log("✅ Hashtags updated in IndexedDB successfully");
+            showToast(`${newHashtags.length} New Hashtags\nSuccessfully Added`);
+
+            // Only update local state if IndexedDB was successful
+            selectedState.hashtags = await getAllFromIndexedDB(STORE_HASHTAGS);
+            console.log("🔄 selectedState.hashtags updated");
+        } catch (err) {
+            console.error("❌ Failed to update hashtags in IndexedDB:", err);
+            alert("Failed to add new hashtags locally.");
+        }
+
+        // Close the modal now so user can continue and then send to Google Sheets in the background
+        closeModal(addHashtagsModalOverlay);
+
+        // Update Google Sheets with new hashtags
+        try {
+            await sendToGoogleSheets(newHashtags, SHEET_NAME_HASHTAGS);
+            console.log("✅ Hashtags updated in Google Sheets successfully");
+        } catch (err) {
+            console.error("❌ Failed to sync with Google Sheets for hashtags:", err);
+            alert("Failed to add new hashtags to Google Sheets.");
+        }
+    });
+
+    // Add event listeners to filter dropdowns
+    filterIdentifierSelect.addEventListener('change', filterHashtags);
+    filterPlatformSelect.addEventListener('change', filterHashtags);
+    filterTypeSelect.addEventListener('change', filterHashtags);
 
     // --- Initial Setup ---
     await loadPlatformSettings();
