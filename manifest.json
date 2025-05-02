@@ -1,6 +1,6 @@
 {
-  "name": "AR Teez Captions Hastags Generator",
-  "short_name": "ARTeezCaptionsHastagsGenerator",
+  "name": "AR Teez Captions Hashtags Generator",
+  "short_name": "AR Teez Hashtags",
   "start_url": ".",
   "display": "fullscreen",
   "background_color": "#ffffff",
