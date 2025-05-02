@@ -666,6 +666,488 @@ input[type="number"] {
     user-select: none; /* Prevent text selection on label click */
 }
 
+body.modal-open {
+    overflow: hidden; /* Prevent background scrolling when modal is open */
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(18, 18, 31, 0.85); /* Dark semi-transparent overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.modal-overlay.modal-open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease;
+}
+
+.modal-content {
+    background-color: var(--bg-card);
+    padding: calc(var(--spacing-unit) * 2); /* 32px */
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+    max-width: 95%;
+    width: 800px; /* Wider modal for table */
+    max-height: 80vh; /* Limit height and allow scrolling within modal */
+    overflow-y: auto;
+    position: relative;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.modal-open .modal-content {
+    transform: scale(1);
+}
+
+.modal-title {
+    font-size: 1.4rem; /* 22px */
+    font-weight: 600;
+    color: var(--accent-primary);
+    margin: 0 0 calc(var(--spacing-unit) * 1.2); /* 0 0 19px */
+    padding-bottom: var(--spacing-unit); /* 16px */
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: calc(var(--spacing-unit) * 0.8); /* 13px */
+    right: calc(var(--spacing-unit) * 0.8); /* 13px */
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem; /* 32px */
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.modal-close-btn:hover {
+    color: var(--danger-color);
+    transform: rotate(90deg);
+    background-color: rgba(255, 77, 77, 0.1);
+}
+
+.modal-body {
+    font-size: 0.9375rem; /* 15px */
+    color: var(--text-primary);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit); /* Space between filters and table */
+}
+
+.caption-filters,
+.hashtag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-unit);
+    padding-bottom: var(--spacing-unit);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-unit); /* Space below filters */
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 0.5);
+}
+
+.filter-group label {
+    font-size: 0.875rem; /* 14px */
+    color: var(--text-secondary);
+    font-weight: 500;
+    flex-shrink: 0; /* Prevent labels from shrinking */
+}
+
+.filter-group select,
+.filter-group input[type="number"] { /* Style number input like select */
+    padding: calc(var(--spacing-unit) * 0.4) calc(var(--spacing-unit) * 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--border-radius) * 0.8);
+    font-size: 0.875rem; /* 14px */
+    font-family: inherit;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    /* min-width: 150px; */ /* Remove fixed min-width for flexibility */
+    flex-grow: 1; /* Allow filter inputs to grow */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-group input[type="number"] {
+    max-width: 100px; /* Limit width of number input */
+    text-align: right;
+    flex-grow: 0; /* Don't let number input grow excessively */
+    cursor: text; /* Use text cursor for input */
+}
+
+.filter-group select:focus,
+.filter-group input[type="number"]:focus {
+    border-color: var(--accent-secondary); /* Use secondary accent for filters */
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 77, 255, 0.3);
+}
+
+.caption-table-container,
+.hashtag-table-container {
+    width: 100%;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    max-height: 50vh; /* Limit table height within modal */
+    overflow-y: auto; /* Allow vertical scrolling for table body */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: rgba(18, 18, 31, 0.5); /* Slightly different bg for table area */
+    position: relative;
+}
+
+#captions-table,
+#hashtags-table {
+    width: 100%;
+    border-collapse: collapse;
+    /* table-layout: fixed; */ /* Let table layout adjust, might be better for varying caption lengths */
+}
+
+#captions-table th, #captions-table td,
+#hashtags-table th, #hashtags-table td {
+    padding: calc(var(--spacing-unit) * 0.6) var(--spacing-unit); /* ~10px 16px */
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.875rem; /* 14px */
+    word-wrap: break-word; /* Wrap long text within cells */
+    vertical-align: top; /* Align content to top */
+}
+
+#captions-table th,
+#hashtags-table th {
+    background-color: #12121f;
+    color: var(--accent-secondary); /* Secondary accent for headers */
+    font-weight: 600;
+    position: sticky; /* Make header sticky */
+    top: 0; /* Stick to the top of the container */
+    z-index: 2; /* Ensure header is above scrolling content */
+}
+
+#captions-table td,
+#hashtags-table td {
+    color: var(--text-primary);
+}
+
+#captions-table tbody tr:nth-child(even),
+#hashtags-table tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02); /* Subtle striping */
+}
+
+#captions-table tbody tr:hover,
+#hashtags-table tbody tr:hover {
+    background-color: rgba(0, 245, 195, 0.08); /* Accent hover */
+}
+
+#captions-table td.no-results,
+#hashtags-table td.no-results {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: var(--spacing-unit);
+    vertical-align: middle;
+}
+
+#captions-table th.col-caption { width: 45%; }
+#captions-table th.col-identifiers { width: 25%; }
+#captions-table th.col-platforms { width: 20%; }
+#captions-table th.col-char-total { width: 10%; }
+
+#hashtags-table th:nth-child(1) { width: 25%; } /* Hashtag */
+#hashtags-table th:nth-child(2) { width: 30%; } /* Identifiers */
+#hashtags-table th:nth-child(3) { width: 30%; } /* Platforms */
+#hashtags-table th:nth-child(4) { width: 15%; } /* Type */
+
+.modal-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.modal-body li {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    border: none;
+}
+
+.add-captions-modal-content {
+    width: 600px; /* Slightly smaller modal */
+    max-height: 90vh;
+}
+
+.add-captions-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 1.5); /* Increased gap */
+}
+
+.add-captions-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 0.75);
+}
+
+.add-captions-section > label,
+.add-hashtags-section > label { /* Also style labels in add hashtags modal */
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+#add-captions-platform-btns {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjust grid for platform buttons */
+}
+
+#add-captions-platform-btns .platform-btn {
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+#add-captions-platform-btns .platform-btn.active {
+    background-color: var(--accent-secondary); /* Use secondary accent for platform selection */
+    color: var(--bg-primary);
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 8px rgba(255, 77, 255, 0.4);
+}
+#add-captions-platform-btns .platform-btn.active:hover {
+    background-color: var(--accent-secondary-dark);
+    border-color: var(--accent-secondary-dark);
+}
+
+#add-captions-input-area {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit); /* Space between textareas */
+    max-height: 35vh; /* Limit height and allow scroll */
+    overflow-y: auto;
+    padding-right: 10px; /* Add some padding for scrollbar */
+     border: 1px solid var(--border-color);
+     border-radius: var(--border-radius);
+     padding: var(--spacing-unit);
+     background-color: rgba(18, 18, 31, 0.5);
+}
+
+.caption-input-wrapper {
+    display: flex;
+    align-items: flex-start; /* Align button to top */
+    gap: calc(var(--spacing-unit) * 0.5);
+}
+
+.caption-input {
+    flex-grow: 1; /* Textarea takes most space */
+    width: 100%; /* Needed for flex-grow to work properly */
+    padding: calc(var(--spacing-unit) * 0.6) calc(var(--spacing-unit) * 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.5;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.caption-input:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 245, 195, 0.3);
+}
+
+.remove-caption-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    margin-top: calc(var(--spacing-unit) * 0.6); /* Align roughly with textarea padding */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.remove-caption-btn:hover {
+    color: var(--danger-color);
+    background-color: rgba(255, 77, 77, 0.1);
+    border-color: var(--danger-color);
+}
+
+/* Hide remove button for the first caption input */
+#add-captions-input-area .caption-input-wrapper:first-child .remove-caption-btn {
+    display: none;
+}
+
+.add-another-btn {
+    align-self: flex-start; /* Align button to the left */
+    margin-top: calc(var(--spacing-unit) * 0.5); /* Add some space above */
+}
+
+.add-hashtags-modal-content {
+     width: 700px; /* Slightly wider for more button grids */
+     max-height: 90vh;
+}
+
+.add-hashtags-modal-body {
+     display: flex;
+     flex-direction: column;
+     gap: calc(var(--spacing-unit) * 1.5); /* Consistent gap */
+}
+
+.add-hashtags-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 0.75);
+}
+
+#add-hashtags-category-btns {
+    /* Uses button-row default */
+}
+
+#add-hashtags-tags-btns {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+#add-hashtags-platform-btns {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+#add-hashtags-type-btns {
+     /* Uses button-row default */
+}
+
+#add-hashtags-category-btns .category-btn.active,
+#add-hashtags-tags-btns .tag-btn.active {
+    background-color: var(--accent-primary); /* Use primary accent for categories/tags */
+    color: var(--bg-primary);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(0, 245, 195, 0.4);
+}
+#add-hashtags-category-btns .category-btn.active:hover,
+#add-hashtags-tags-btns .tag-btn.active:hover {
+    background-color: var(--accent-primary-dark);
+    border-color: var(--accent-primary-dark);
+}
+
+#add-hashtags-platform-btns .platform-btn.active {
+    background-color: var(--accent-secondary); /* Use secondary accent for platforms */
+    color: var(--bg-primary);
+    border-color: var(--accent-secondary);
+    box-shadow: 0 0 8px rgba(255, 77, 255, 0.4);
+}
+#add-hashtags-platform-btns .platform-btn.active:hover {
+    background-color: var(--accent-secondary-dark);
+    border-color: var(--accent-secondary-dark);
+}
+
+#add-hashtags-type-btns .type-btn.active {
+    background-color: var(--success-color); /* Use another distinct color for type */
+    color: var(--bg-primary);
+    border-color: var(--success-color);
+    box-shadow: 0 0 8px rgba(0, 245, 195, 0.4); /* Can reuse primary accent glow */
+}
+#add-hashtags-type-btns .type-btn.active:hover {
+    background-color: var(--success-color-dark);
+    border-color: var(--success-color-dark);
+}
+
+#add-hashtags-input {
+    width: 100%;
+    padding: calc(var(--spacing-unit) * 0.6) calc(var(--spacing-unit) * 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+#add-hashtags-input:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 245, 195, 0.3);
+}
+
+.modal-footer {
+    margin-top: var(--spacing-unit);
+    padding-top: var(--spacing-unit);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end; /* Align button to the right */
+}
+
+.submit-captions {
+    background: linear-gradient(45deg, var(--accent-secondary), var(--accent-primary)); /* Reversed gradient */
+    color: var(--bg-primary);
+    border: none;
+    padding: calc(var(--spacing-unit) * 0.7) calc(var(--spacing-unit) * 1.5);
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 77, 255, 0.2), 0 4px 12px rgba(0, 245, 195, 0.2);
+}
+.submit-captions:hover {
+    background: linear-gradient(45deg, var(--accent-secondary-dark), var(--accent-primary-dark));
+    box-shadow: 0 6px 18px rgba(255, 77, 255, 0.3), 0 6px 18px rgba(0, 245, 195, 0.3);
+     transform: translateY(-1px);
+}
+.submit-captions:active {
+     transform: translateY(0px);
+     box-shadow: 0 2px 8px rgba(255, 77, 255, 0.15), 0 2px 8px rgba(0, 245, 195, 0.15);
+}
+
+.submit-hashtags { /* Style similarly to submit-captions but maybe different gradient */
+    background: linear-gradient(45deg, var(--accent-primary), var(--success-color)); /* Primary + Success */
+    color: var(--bg-primary);
+    border: none;
+    padding: calc(var(--spacing-unit) * 0.7) calc(var(--spacing-unit) * 1.5);
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 245, 195, 0.2), 0 4px 12px rgba(0, 245, 195, 0.2); /* Using primary accent glow */
+}
+.submit-hashtags:hover {
+    background: linear-gradient(45deg, var(--accent-primary-dark), var(--success-color-dark));
+    box-shadow: 0 6px 18px rgba(0, 245, 195, 0.3), 0 6px 18px rgba(0, 245, 195, 0.3);
+     transform: translateY(-1px);
+}
+.submit-hashtags:active {
+     transform: translateY(0px);
+     box-shadow: 0 2px 8px rgba(0, 245, 195, 0.15), 0 2px 8px rgba(0, 245, 195, 0.15);
+}
+
 .toast {
   position: fixed;
   top: 100px;
@@ -692,6 +1174,47 @@ input[type="number"] {
 }
 
 /* Responsive Adjustments */
+@media (max-width: 900px) {
+    .modal-content {
+        width: 90%;
+    }
+    .caption-filters,
+    .hashtag-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-group {
+        /* flex-direction: column; */ /* Keep row for label+input */
+        /* align-items: stretch; */
+        gap: calc(var(--spacing-unit) * 0.4); /* Smaller gap */
+    }
+    .filter-group label {
+        margin-bottom: 0; /* Remove bottom margin if any */
+        min-width: 80px; /* Give label some minimum width */
+        flex-shrink: 0;
+        text-align: left;
+    }
+    .filter-group select,
+    .filter-group input[type="number"] {
+        min-width: 0; /* Allow select to shrink */
+        flex-grow: 1; /* Allow select to fill space */
+    }
+    .filter-group input[type="number"] {
+        flex-grow: 0; /* Don't let number input grow */
+        max-width: 80px; /* Adjust max width */
+    }
+
+    #captions-table th.col-caption { width: 40%; }
+    #captions-table th.col-identifiers { width: 25%; }
+    #captions-table th.col-platforms { width: 20%; }
+    #captions-table th.col-char-total { width: 15%; }
+
+    #hashtags-table th:nth-child(1) { width: 30%; }
+    #hashtags-table th:nth-child(2) { width: 30%; }
+    #hashtags-table th:nth-child(3) { width: 25%; }
+    #hashtags-table th:nth-child(4) { width: 15%; }
+}
+
 @media (max-width: 768px) {
     body {
         padding: var(--spacing-unit); /* 16px */
@@ -764,6 +1287,22 @@ input[type="number"] {
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       gap: calc(var(--spacing-unit) * 0.8) calc(var(--spacing-unit) * 1.2);
     }
+
+    #captions-table th, #captions-table td,
+    #hashtags-table th, #hashtags-table td {
+        font-size: 0.8125rem; /* 13px */
+        padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 0.75); /* ~8px 12px */
+    }
+
+    #captions-table th.col-caption, #captions-table td.col-caption { width: auto; } /* Let captions wrap */
+    #captions-table th.col-identifiers, #captions-table td.col-identifiers { display: none; } /* Hide less critical columns */
+    #captions-table th.col-platforms, #captions-table td.col-platforms { display: none; } /* Hide less critical columns */
+    #captions-table th.col-char-total, #captions-table td.col-char-total { width: 15%; text-align: right;} /* Keep char total, right align */
+
+    #hashtags-table th:nth-child(1), #hashtags-table td:nth-child(1) { width: auto; } /* Let hashtags wrap */
+    #hashtags-table th:nth-child(2), #hashtags-table td:nth-child(2) { display: none; } /* Hide identifiers */
+    #hashtags-table th:nth-child(3), #hashtags-table td:nth-child(3) { display: none; } /* Hide platforms */
+    #hashtags-table th:nth-child(4), #hashtags-table td:nth-child(4) { width: 20%; } /* Keep Type */
 }
 
 @media (max-width: 480px) {
@@ -804,5 +1343,22 @@ input[type="number"] {
          left: 4px;
          width: 4px;
          height: 8px;
+     }
+
+     #captions-table th, #captions-table td,
+     #hashtags-table th, #hashtags-table td {
+          font-size: 0.75rem; /* Further reduce font size in table */
+          padding: calc(var(--spacing-unit) * 0.4) calc(var(--spacing-unit) * 0.6); /* Smaller padding */
+     }
+     .filter-group label {
+          font-size: 0.8125rem; /* Smaller filter label */
+          min-width: 70px;
+     }
+      .filter-group select,
+      .filter-group input[type="number"] {
+          font-size: 0.8125rem;
+      }
+      .filter-group input[type="number"] {
+         max-width: 60px; /* Adjust max width */
      }
 }
