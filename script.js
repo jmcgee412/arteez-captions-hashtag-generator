@@ -767,6 +767,45 @@ document.addEventListener('DOMContentLoaded', async () => {
       return chosen; // return full object
     }
 
+   // ——— Function to get a random caption for intended platform that matches filters and platform settings  ———
+    function getFilteredCaptionForPlatform(platform, settings, state) {
+      const targetCategory = state.category?.toLowerCase();
+      const maxChars = settings.chars;
+
+      // The following is for debugging
+      // console.log(`🔍 Filtering captions for: ${platform}`);
+      // console.log(`➡️ Required category: "${targetCategory}", max chars: ${maxChars}`);
+
+      const matches = state.captions.filter(caption => {
+        const rawCaption = caption.Caption;
+        const identifiers = caption.Identifiers?.split(',').map(s => s.trim().toLowerCase()) || [];
+        const platforms = caption.Platforms?.split(',').map(s => s.trim().toLowerCase()) || [];
+        const charCount = parseInt(caption['Char Total'], 10);
+
+        const matchesIdentifier = identifiers.some(tag => tag.toLowerCase() === targetCategory?.toLowerCase());
+        const matchesPlatform = platforms.some(p => p.toLowerCase() === platform.toLowerCase()) || platforms.map(p => p.toLowerCase()).includes('all');
+        const withinCharLimit = !isNaN(charCount) && charCount <= maxChars;
+
+        // Only for debgugging: Log info for each caption considered
+        // console.log(`— Caption: "${rawCaption}"`);
+        // console.log(`   Identifiers:`, identifiers);
+        // console.log(`   Platforms:`, platforms);
+        // console.log(`   Char count:`, charCount);
+        // console.log(`   ✅ Category Match: ${matchesIdentifier}, Platform Match: ${matchesPlatform}, Char Limit: ${withinCharLimit}`);
+
+        return matchesIdentifier && matchesPlatform && withinCharLimit;
+      });
+
+      if (matches.length === 0) {
+        console.warn(`⚠️ No caption found for ${platform}`);
+        return null; // return null to indicate no match
+      }
+
+      const chosen = matches[Math.floor(Math.random() * matches.length)];
+      console.log(`✅ Selected caption for ${platform}:`, chosen);
+      return chosen; // return full object
+    }
+
     // ——— Function to get a random hashtags for intended platform that matches filters and platform settings  ———
     function getFilteredHashtagsForPlatform(platform, settings, state) {
         const platformLower = platform.toLowerCase();
@@ -821,12 +860,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             return picks;
         }
 
-        // --- 5. Fill in hashtags ---
-        result.niche.push(...pickRandom(nichePool, neededNiche));
+        // --- 5. Fill in niche hashtags ---
+        // Fill in remaining niche slots, if any left, by prioritizing one category-related niche hashtag
+        // first, and then a mix of both category-related and additional-tag-related hashtags
+        let extraNeeded = neededNiche;
+
+        // For debugging, to help check slots being filled
+        //console.log(`🧮 Niche target: ${settings.niche}`);
+        //console.log(`🔧 Custom hashtags filled: ${result.niche.length}`);
+        //console.log(`🕳️ Niche slots remaining after custom: ${extraNeeded}`);
+
+        // Step 1: Prioritize one niche slot from category-based identifiers
+        const categoryNichePool = nichePool.filter(h =>
+            h.Identifiers?.toLowerCase().split(',').map(s => s.trim()).includes(category)
+        );
+
+        if (extraNeeded > 0 && categoryNichePool.length > 0) {
+            result.niche.push(...pickRandom(categoryNichePool, 1));
+            extraNeeded -= 1;
+
+            // For debugging, to confirm category-based hashtag is being filled 
+            //console.log(`🎯 Filled 1 niche slot from category-based hashtags:`);
+        }
+
+        // Step 2: Fill remaining niche slots left from full pool, excluding one we may have just added
+        const remainingPool = nichePool.filter(h => !result.niche.includes(h.Hashtag));
+        result.niche.push(...pickRandom(remainingPool, extraNeeded));
+
+        // --- 6. Fill in remainin popular and branded hashtags ---
         result.popular = pickRandom(popularPool, settings.popular);
         result.branded = pickRandom(brandedPool, settings.branded);
 
-        // --- 6. Final warnings if underfilled ---
+        // --- 7. Final warnings if underfilled ---
         const totalNiche = result.niche.length;
         const totalPop   = result.popular.length;
         const totalBrand = result.branded.length;
@@ -848,7 +913,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         return result;
     }
-
 
     // Add Copy Button Listeners Function
     function addCopyButtonListeners() {
